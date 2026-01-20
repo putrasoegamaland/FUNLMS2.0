@@ -16,9 +16,11 @@ export function GameProvider({ children }) {
     useEffect(() => {
         if (userId) {
             const userProgress = storage.progress.get(userId);
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setProgress(userProgress);
 
             const gamificationConfig = storage.gamificationConfig.get();
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setConfig(gamificationConfig);
 
             const allBadges = storage.badges.getAll();
@@ -30,34 +32,6 @@ export function GameProvider({ children }) {
     const initForUser = useCallback((id) => {
         setUserId(id);
     }, []);
-
-    // Award XP
-    const awardXP = useCallback((amount, subject = null) => {
-        if (!userId) return null;
-
-        // Apply streak bonus
-        let finalAmount = amount;
-        if (progress && config?.streakBonuses) {
-            const sortedStreaks = Object.keys(config.streakBonuses)
-                .map(Number)
-                .sort((a, b) => b - a);
-
-            for (const streak of sortedStreaks) {
-                if (progress.streak >= streak) {
-                    finalAmount = Math.floor(amount * config.streakBonuses[streak]);
-                    break;
-                }
-            }
-        }
-
-        const updatedProgress = storage.progress.addXP(userId, finalAmount, subject);
-        setProgress(updatedProgress);
-
-        // Check for new badge unlocks
-        checkBadgeUnlocks(updatedProgress);
-
-        return { xpAwarded: finalAmount, newProgress: updatedProgress };
-    }, [userId, progress, config]);
 
     // Check and unlock badges
     const checkBadgeUnlocks = useCallback((currentProgress) => {
@@ -101,6 +75,36 @@ export function GameProvider({ children }) {
 
         return newUnlocks;
     }, [badges, userId]);
+
+    // Award XP
+    const awardXP = useCallback((amount, subject = null) => {
+        if (!userId) return null;
+
+        // Apply streak bonus
+        let finalAmount = amount;
+        if (progress && config?.streakBonuses) {
+            const sortedStreaks = Object.keys(config.streakBonuses)
+                .map(Number)
+                .sort((a, b) => b - a);
+
+            for (const streak of sortedStreaks) {
+                if (progress.streak >= streak) {
+                    finalAmount = Math.floor(amount * config.streakBonuses[streak]);
+                    break;
+                }
+            }
+        }
+
+        const updatedProgress = storage.progress.addXP(userId, finalAmount, subject);
+        setProgress(updatedProgress);
+
+        // Check for new badge unlocks
+        checkBadgeUnlocks(updatedProgress);
+
+        return { xpAwarded: finalAmount, newProgress: updatedProgress };
+    }, [userId, progress, config, checkBadgeUnlocks]);
+
+
 
     // Update streak
     const updateStreak = useCallback(() => {

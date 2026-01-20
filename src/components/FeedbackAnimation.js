@@ -18,6 +18,18 @@ export function FeedbackAnimation({ isCorrect, xpEarned, onComplete }) {
         return () => clearTimeout(timer);
     }, [onComplete]);
 
+    const [confettiItems, setConfettiItems] = useState([]);
+
+    useEffect(() => {
+        setConfettiItems([...Array(20)].map((_, i) => ({
+            id: i,
+            left: `${Math.random() * 100}%`,
+            delay: `${Math.random() * 0.5}s`,
+            size: `${20 + Math.random() * 20}px`,
+            icon: ['🎉', '⭐', '🌟', '✨', '💫'][Math.floor(Math.random() * 5)]
+        })));
+    }, []);
+
     if (!visible) return null;
 
     return (
@@ -46,18 +58,18 @@ export function FeedbackAnimation({ isCorrect, xpEarned, onComplete }) {
             {/* Confetti effect for correct answers */}
             {isCorrect && (
                 <div className="absolute inset-0 overflow-hidden">
-                    {[...Array(20)].map((_, i) => (
+                    {confettiItems.map((item) => (
                         <div
-                            key={i}
+                            key={item.id}
                             className="absolute animate-confetti"
                             style={{
-                                left: `${Math.random() * 100}%`,
+                                left: item.left,
                                 top: '-20px',
-                                animationDelay: `${Math.random() * 0.5}s`,
-                                fontSize: `${20 + Math.random() * 20}px`,
+                                animationDelay: item.delay,
+                                fontSize: item.size,
                             }}
                         >
-                            {['🎉', '⭐', '🌟', '✨', '💫'][Math.floor(Math.random() * 5)]}
+                            {item.icon}
                         </div>
                     ))}
                 </div>

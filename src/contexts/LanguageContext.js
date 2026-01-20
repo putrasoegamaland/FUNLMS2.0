@@ -208,6 +208,7 @@ export function LanguageProvider({ children }) {
     useEffect(() => {
         const saved = localStorage.getItem('funlms_language');
         if (saved && (saved === 'en' || saved === 'id')) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setLocale(saved);
         }
     }, []);

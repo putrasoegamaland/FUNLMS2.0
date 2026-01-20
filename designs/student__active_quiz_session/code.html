@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>FunLMS Kids - Student Quiz</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&amp;family=Noto+Sans:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#0df259",
+                        "background-light": "#f5f8f6",
+                        "background-dark": "#102216",
+                        "text-dark": "#0d1c12",
+                    },
+                    fontFamily: {
+                        "display": ["Lexend", "sans-serif"],
+                        "body": ["Noto Sans", "sans-serif"],
+                    },
+                    borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "2xl": "2rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Lexend', 'Noto Sans', sans-serif;
+        }
+        /* Custom scrollbar hide for clean mobile feel */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark min-h-screen text-text-dark dark:text-gray-100 selection:bg-primary selection:text-black">
+<div class="relative mx-auto flex h-full min-h-screen w-full max-w-md flex-col overflow-hidden bg-background-light dark:bg-background-dark shadow-2xl transition-colors duration-200">
+<!-- Header Section: Progress & AI Hint -->
+<header class="flex items-center justify-between gap-4 px-5 pt-8 pb-2">
+<!-- Progress Bar Component -->
+<div class="flex flex-1 flex-col gap-2">
+<div class="flex justify-between items-end">
+<p class="font-display text-sm font-bold tracking-wide text-text-dark/70 dark:text-white/70">Question 3/8</p>
+</div>
+<div class="h-4 w-full overflow-hidden rounded-full bg-[#cee8d7] dark:bg-white/10">
+<div class="h-full rounded-full bg-primary transition-all duration-500 ease-out shadow-[0_0_10px_rgba(13,242,89,0.5)]" style="width: 40%;"></div>
+</div>
+</div>
+<!-- AI Robot Hint Button (Adapted from FAB) -->
+<button class="group relative flex h-14 w-14 shrink-0 cursor-pointer items-center justify-center rounded-2xl bg-white dark:bg-white/10 text-text-dark shadow-sm transition-all hover:scale-105 active:scale-95 ring-2 ring-transparent hover:ring-primary">
+<div class="absolute inset-0 rounded-2xl bg-primary/20 opacity-0 transition-opacity group-hover:opacity-100"></div>
+<span class="material-symbols-outlined text-[32px] text-primary" style="font-variation-settings: 'FILL' 1;">smart_toy</span>
+</button>
+</header>
+<!-- Main Content Area -->
+<main class="flex flex-1 flex-col px-5 pb-6">
+<!-- Question Section (Adapted HeadlineText) -->
+<div class="flex flex-col items-center py-6 text-center">
+<h1 class="font-display text-3xl font-extrabold leading-tight text-text-dark dark:text-white drop-shadow-sm">
+                    Which animal says <span class="text-primary underline decoration-wavy decoration-2 underline-offset-4">Meow</span>?
+                </h1>
+<button class="mt-4 flex items-center gap-2 rounded-full bg-white dark:bg-white/5 px-4 py-2 text-sm font-bold text-text-dark/80 dark:text-white/80 shadow-sm transition-transform hover:scale-105 active:scale-95">
+<span class="material-symbols-outlined text-primary text-[20px]">volume_up</span>
+<span>Read Aloud</span>
+</button>
+</div>
+<!-- Answer Grid (Adapted ImageGrid) -->
+<div class="grid grid-cols-2 gap-4 pb-4">
+<!-- Option 1: Cat -->
+<button class="group relative flex flex-col gap-3 rounded-2xl bg-white dark:bg-white/5 p-3 shadow-sm transition-all duration-200 hover:shadow-lg hover:ring-4 hover:ring-primary focus:outline-none focus:ring-4 focus:ring-primary active:scale-95">
+<div class="relative aspect-square w-full overflow-hidden rounded-xl bg-gray-100 dark:bg-gray-800">
+<div class="h-full w-full bg-cover bg-center transition-transform duration-500 group-hover:scale-110" data-alt="Close up photo of a cute cat looking at camera" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBkzbeJl9jUeFpmLeSutU-COVyEn4UBY0aPGS28rq_81L8o3mb4UXCEP3UEQosVlLBu3t8ugGzJq1J31mNikOt0HaVCN_WwYzOdRMSvkFI4sVv2DKYfg-JAF5v_1sQoTXwVXoxYiEpKGRigH3UyLYvqDgcr1EjJ00vkd1rgjkBBmr-rBjAT8MzSGafUgpKE2iX6nKIJ9GhfVcQuVlzXBay2lokSBhzfYzz4EXdFGcZx9RGC4s5gSEmiGSOqU0OFbtxb-Utc4w3xCh0");'>
+</div>
+</div>
+<div class="flex w-full items-center justify-between px-1">
+<p class="font-display text-lg font-bold text-text-dark dark:text-white">Cat</p>
+<div class="h-6 w-6 rounded-full border-2 border-gray-200 dark:border-gray-600 group-hover:border-primary group-hover:bg-primary transition-colors flex items-center justify-center">
+<!-- Checkmark appears on selection usually, simulating empty radio for now -->
+</div>
+</div>
+</button>
+<!-- Option 2: Dog -->
+<button class="group relative flex flex-col gap-3 rounded-2xl bg-white dark:bg-white/5 p-3 shadow-sm transition-all duration-200 hover:shadow-lg hover:ring-4 hover:ring-primary focus:outline-none focus:ring-4 focus:ring-primary active:scale-95">
+<div class="relative aspect-square w-full overflow-hidden rounded-xl bg-gray-100 dark:bg-gray-800">
+<div class="h-full w-full bg-cover bg-center transition-transform duration-500 group-hover:scale-110" data-alt="Happy dog panting with tongue out" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDzfEDS5MPTJAv2a6ejBmv1kar9Sj0uHzvKszfh0hmmkmY7BaprxG1yIvpeskY4uD7Z8BK_ilz06cu0-3s24Eip7NYgzj2cQaVDIwtgqoBLfPEYBAj_Q5cKQIHtOLaC1y1AOEHu3oF54M3voQmFN14BYQI8Krjx_GGBqP9ztJbhjEvkFrAjmkDE_9FLz70s2syTb2_ek3mjqFFnXTPeWMffphDd6vTK5e0UkwKWXyI7iy-kcpne0LQxD2hcwCDvOOTfC5OpBiz-spo");'>
+</div>
+</div>
+<div class="flex w-full items-center justify-between px-1">
+<p class="font-display text-lg font-bold text-text-dark dark:text-white">Dog</p>
+<div class="h-6 w-6 rounded-full border-2 border-gray-200 dark:border-gray-600 group-hover:border-primary group-hover:bg-primary transition-colors"></div>
+</div>
+</button>
+<!-- Option 3: Cow -->
+<button class="group relative flex flex-col gap-3 rounded-2xl bg-white dark:bg-white/5 p-3 shadow-sm transition-all duration-200 hover:shadow-lg hover:ring-4 hover:ring-primary focus:outline-none focus:ring-4 focus:ring-primary active:scale-95">
+<div class="relative aspect-square w-full overflow-hidden rounded-xl bg-gray-100 dark:bg-gray-800">
+<div class="h-full w-full bg-cover bg-center transition-transform duration-500 group-hover:scale-110" data-alt="Black and white cow in a green field" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCe4ryQxmZ47rDMDL21hf1AGs-VBCqaXjhCV3BdrmtRdN2TuMVzyELNIcmLM3AH9R-gkxXZe2UyT6QdYh9F7zafQSL5gkiz-REq3detZ6Dlya52ZpdsZcq1xlNGMFQftoTflhHNnS9X_mUbFeCgT9imdxtLFEDbCPQORQuBehuK123KYcK253iPaL2uceUktbDQU7q3K5gEXkoQKGyRdITcWluo6RPuH1gzzH6DrDYmLX1Yt_t4NXNl5AjPU6ZKkQQEMYRJdsEyKv0");'>
+</div>
+</div>
+<div class="flex w-full items-center justify-between px-1">
+<p class="font-display text-lg font-bold text-text-dark dark:text-white">Cow</p>
+<div class="h-6 w-6 rounded-full border-2 border-gray-200 dark:border-gray-600 group-hover:border-primary group-hover:bg-primary transition-colors"></div>
+</div>
+</button>
+<!-- Option 4: Bird -->
+<button class="group relative flex flex-col gap-3 rounded-2xl bg-white dark:bg-white/5 p-3 shadow-sm transition-all duration-200 hover:shadow-lg hover:ring-4 hover:ring-primary focus:outline-none focus:ring-4 focus:ring-primary active:scale-95">
+<div class="relative aspect-square w-full overflow-hidden rounded-xl bg-gray-100 dark:bg-gray-800">
+<div class="h-full w-full bg-cover bg-center transition-transform duration-500 group-hover:scale-110" data-alt="Small colorful bird on a branch" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDkwFkoZeNQDSCCTPBzeS1qDa_2oxH_4Hp5c3QRXy9pd4HOn6zBgsA_ZrwO9T-zWYh9KWX89-r8gpBhmijlfJFJwwMjAz9Pt0NRyjPXFU2PzC92dvlNM20YB7IqAHBjM4Ub9cf-aTBS4JK04x3Csee0O47x9lb4Inu0reiX8XPc5uTF_NGMkPk-F6sp_U5ZjBxp3ArE3JxrXvgCqEtrhRbugnS7lgIleh8WTpkY3V6DwdETG-x43Pr5nv2zDnHr1rnyZPlqS9gbIgQ");'>
+</div>
+</div>
+<div class="flex w-full items-center justify-between px-1">
+<p class="font-display text-lg font-bold text-text-dark dark:text-white">Bird</p>
+<div class="h-6 w-6 rounded-full border-2 border-gray-200 dark:border-gray-600 group-hover:border-primary group-hover:bg-primary transition-colors"></div>
+</div>
+</button>
+</div>
+<div class="flex-1"></div>
+<!-- Footer Navigation (Adapted ButtonGroup) -->
+<div class="mt-4 flex gap-4">
+<button class="flex h-14 flex-1 cursor-pointer items-center justify-center rounded-2xl bg-[#e7f4eb] dark:bg-white/10 text-text-dark dark:text-white transition-colors hover:bg-primary/20 dark:hover:bg-white/20 active:scale-95">
+<span class="material-symbols-outlined mr-2 text-xl">arrow_back</span>
+<span class="font-display text-base font-bold">Back</span>
+</button>
+<button class="flex h-14 flex-1 cursor-pointer items-center justify-center rounded-2xl bg-[#e7f4eb] dark:bg-white/10 text-text-dark dark:text-white transition-colors hover:bg-primary/20 dark:hover:bg-white/20 active:scale-95">
+<span class="font-display text-base font-bold">Skip</span>
+<span class="material-symbols-outlined ml-2 text-xl">fast_forward</span>
+</button>
+</div>
+</main>
+</div>
+</body></html>

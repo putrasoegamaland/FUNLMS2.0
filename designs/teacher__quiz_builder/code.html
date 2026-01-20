@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Teacher Quiz Builder</title>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#0df259",
+                        "primary-dark": "#0bb842",
+                        "background-light": "#f5f8f6",
+                        "background-dark": "#102216",
+                        "surface-light": "#ffffff",
+                        "surface-dark": "#1a2e22",
+                        "border-light": "#cee8d7",
+                        "border-dark": "#2a4232",
+                    },
+                    fontFamily: {
+                        "display": ["Lexend", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom scrollbar hiding for cleaner mobile look */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-[#0d1c12] dark:text-[#e0eadd] antialiased relative h-screen flex flex-col overflow-hidden">
+<!-- Header -->
+<header class="flex-none flex items-center justify-between p-4 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-sm z-10">
+<button class="flex size-10 items-center justify-center rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors text-[#0d1c12] dark:text-white">
+<span class="material-symbols-outlined text-[24px]">arrow_back</span>
+</button>
+<h2 class="text-lg font-bold leading-tight tracking-[-0.015em] flex-1 text-center pr-2">Create Quiz</h2>
+<button class="flex items-center justify-end px-2">
+<p class="text-[#499c65] dark:text-[#0df259] text-base font-bold leading-normal tracking-[0.015em] hover:opacity-80 transition-opacity">Save</p>
+</button>
+</header>
+<!-- Scrollable Main Content -->
+<main class="flex-1 overflow-y-auto no-scrollbar pb-24 w-full max-w-md mx-auto">
+<div class="flex flex-col gap-6 px-4 py-2">
+<!-- Metadata Section -->
+<div class="flex flex-col gap-4">
+<label class="flex flex-col gap-2">
+<span class="text-sm font-medium text-gray-700 dark:text-gray-300 ml-1">Quiz Title</span>
+<input class="w-full h-14 rounded-xl border border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark px-4 text-base text-[#0d1c12] dark:text-white placeholder:text-[#499c65]/60 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all shadow-sm" placeholder="e.g. Solar System Explorer" type="text" value=""/>
+</label>
+<label class="flex flex-col gap-2">
+<span class="text-sm font-medium text-gray-700 dark:text-gray-300 ml-1">Subject</span>
+<div class="relative">
+<select class="w-full h-14 rounded-xl border border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark px-4 text-base text-[#0d1c12] dark:text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all appearance-none shadow-sm">
+<option>Science</option>
+<option>Mathematics</option>
+<option>History</option>
+<option>Language Arts</option>
+</select>
+<span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none">expand_more</span>
+</div>
+</label>
+</div>
+<!-- Question Card -->
+<div class="flex flex-col bg-surface-light dark:bg-surface-dark rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.04)] dark:shadow-none border border-transparent dark:border-border-dark overflow-hidden transition-all">
+<!-- Card Header -->
+<div class="flex items-center justify-between p-4 pb-2 border-b border-gray-100 dark:border-border-dark/50">
+<div class="flex flex-col">
+<h3 class="text-base font-bold text-[#0d1c12] dark:text-white">Question 1</h3>
+<p class="text-xs text-gray-500 dark:text-gray-400">Multiple Choice</p>
+</div>
+<button class="flex items-center justify-center size-8 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+<span class="material-symbols-outlined text-[20px]">delete</span>
+</button>
+</div>
+<div class="p-4 flex flex-col gap-6">
+<!-- Question Input -->
+<label class="flex flex-col w-full">
+<textarea class="w-full min-h-[100px] resize-none rounded-xl border border-border-light dark:border-border-dark bg-[#f8fcf9] dark:bg-[#15261d] p-4 text-base text-[#0d1c12] dark:text-white placeholder:text-[#499c65]/60 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all" placeholder="Type your question here..."></textarea>
+</label>
+<!-- Image Upload -->
+<div class="flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-border-light dark:border-border-dark bg-[#f8fcf9]/50 dark:bg-[#15261d]/50 py-8 px-4 transition-colors hover:bg-[#f0f7f2] dark:hover:bg-[#1a2e22] cursor-pointer group">
+<div class="size-10 rounded-full bg-white dark:bg-surface-dark flex items-center justify-center shadow-sm text-primary group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined">add_photo_alternate</span>
+</div>
+<div class="text-center">
+<p class="text-sm font-bold text-[#0d1c12] dark:text-white">Upload Image</p>
+<p class="text-xs text-gray-500 dark:text-gray-400">Supports JPG, PNG</p>
+</div>
+</div>
+<!-- Answer Options -->
+<div class="flex flex-col gap-3">
+<p class="text-sm font-bold text-[#0d1c12] dark:text-white ml-1 flex items-center gap-2">
+                            Answers 
+                            <span class="text-xs font-normal text-gray-500 dark:text-gray-400">(Select correct answer)</span>
+</p>
+<!-- Option 1 -->
+<div class="flex items-center gap-3 group">
+<label class="relative flex items-center justify-center cursor-pointer p-1">
+<input class="peer sr-only" name="correct_answer_1" type="radio"/>
+<div class="size-6 rounded-full border-2 border-gray-300 dark:border-gray-600 peer-checked:border-primary peer-checked:bg-primary transition-all"></div>
+<span class="material-symbols-outlined text-white text-[16px] absolute opacity-0 peer-checked:opacity-100 transition-opacity">check</span>
+</label>
+<input class="flex-1 h-12 rounded-lg border border-border-light dark:border-border-dark bg-[#f8fcf9] dark:bg-[#15261d] px-4 text-sm text-[#0d1c12] dark:text-white focus:border-primary outline-none transition-all" placeholder="Option 1" type="text" value=""/>
+</div>
+<!-- Option 2 (Correct) -->
+<div class="flex items-center gap-3 group">
+<label class="relative flex items-center justify-center cursor-pointer p-1">
+<input checked="" class="peer sr-only" name="correct_answer_1" type="radio"/>
+<div class="size-6 rounded-full border-2 border-gray-300 dark:border-gray-600 peer-checked:border-primary peer-checked:bg-primary transition-all"></div>
+<span class="material-symbols-outlined text-[#102216] text-[16px] absolute opacity-0 peer-checked:opacity-100 transition-opacity font-bold">check</span>
+</label>
+<input class="flex-1 h-12 rounded-lg border border-primary/50 dark:border-primary/50 bg-[#e7f4eb] dark:bg-[#15261d] px-4 text-sm text-[#0d1c12] dark:text-white focus:border-primary outline-none transition-all font-medium" placeholder="Option 2" type="text" value="Paris"/>
+</div>
+<!-- Option 3 -->
+<div class="flex items-center gap-3 group">
+<label class="relative flex items-center justify-center cursor-pointer p-1">
+<input class="peer sr-only" name="correct_answer_1" type="radio"/>
+<div class="size-6 rounded-full border-2 border-gray-300 dark:border-gray-600 peer-checked:border-primary peer-checked:bg-primary transition-all"></div>
+<span class="material-symbols-outlined text-white text-[16px] absolute opacity-0 peer-checked:opacity-100 transition-opacity">check</span>
+</label>
+<input class="flex-1 h-12 rounded-lg border border-border-light dark:border-border-dark bg-[#f8fcf9] dark:bg-[#15261d] px-4 text-sm text-[#0d1c12] dark:text-white focus:border-primary outline-none transition-all" placeholder="Option 3" type="text" value=""/>
+</div>
+<!-- Option 4 -->
+<div class="flex items-center gap-3 group">
+<label class="relative flex items-center justify-center cursor-pointer p-1">
+<input class="peer sr-only" name="correct_answer_1" type="radio"/>
+<div class="size-6 rounded-full border-2 border-gray-300 dark:border-gray-600 peer-checked:border-primary peer-checked:bg-primary transition-all"></div>
+<span class="material-symbols-outlined text-white text-[16px] absolute opacity-0 peer-checked:opacity-100 transition-opacity">check</span>
+</label>
+<input class="flex-1 h-12 rounded-lg border border-border-light dark:border-border-dark bg-[#f8fcf9] dark:bg-[#15261d] px-4 text-sm text-[#0d1c12] dark:text-white focus:border-primary outline-none transition-all" placeholder="Option 4" type="text" value=""/>
+</div>
+</div>
+<!-- Divider -->
+<div class="h-px w-full bg-gray-100 dark:bg-border-dark"></div>
+<!-- Toggles -->
+<div class="flex flex-col gap-4">
+<div class="flex items-center justify-between">
+<div class="flex flex-col">
+<p class="text-sm font-bold text-[#0d1c12] dark:text-white">Enable AI Hints</p>
+<p class="text-xs text-gray-500 dark:text-gray-400">Students can request automated hints</p>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox" value=""/>
+<div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
+</label>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex flex-col">
+<p class="text-sm font-bold text-[#0d1c12] dark:text-white">Allow Skip</p>
+<p class="text-xs text-gray-500 dark:text-gray-400">Students can skip this question</p>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input class="sr-only peer" type="checkbox" value=""/>
+<div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
+</label>
+</div>
+</div>
+</div>
+</div>
+<!-- Spacer for bottom bar -->
+<div class="h-8"></div>
+</div>
+</main>
+<!-- Footer Action -->
+<footer class="absolute bottom-0 w-full bg-background-light dark:bg-background-dark border-t border-border-light dark:border-border-dark p-4 z-20 shadow-lg">
+<div class="max-w-md mx-auto">
+<button class="w-full h-12 bg-primary hover:bg-primary-dark text-[#0d1c12] font-bold text-base rounded-xl shadow-[0_4px_12px_rgba(13,242,89,0.3)] transition-all active:scale-[0.98] flex items-center justify-center gap-2">
+<span class="material-symbols-outlined">add</span>
+                Add Question
+            </button>
+</div>
+</footer>
+</body></html>

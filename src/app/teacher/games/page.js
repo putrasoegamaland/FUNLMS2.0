@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
-import storage from '@/lib/storage';
+import { useAssessments, useClasses, useSubjects, createRecord, deleteRecord } from '@/hooks/useSupabaseData';
 import { processImage } from '@/lib/fileUtils';
 
 const GAME_TEMPLATES = [
@@ -44,33 +44,31 @@ const GAME_TEMPLATES = [
 export default function TeacherGamesPage() {
     const { user } = useAuth();
     const router = useRouter();
+    const { data: allAssessments, loading: assessmentsLoading, refetch: refetchAssessments } = useAssessments();
+    const { data: allClasses, loading: classesLoading } = useClasses({ teacher_id: user?.id });
+    const { data: subjects, loading: subjectsLoading } = useSubjects();
+
     const [step, setStep] = useState('list'); // list, select, create, preview
-    const [games, setGames] = useState([]);
     const [selectedTemplate, setSelectedTemplate] = useState(null);
     const [previewGame, setPreviewGame] = useState(null);
-    const [classes, setClasses] = useState([]);
-    const [subjects, setSubjects] = useState([]);
 
-    useEffect(() => {
-        loadData();
-    }, [user]);
+    const isLoading = assessmentsLoading || classesLoading || subjectsLoading;
 
-    const loadData = () => {
-        const allGames = storage.assessments.getAll().filter(a =>
-            a.type === 'game' && a.createdBy === user?.id
-        );
-        setGames(allGames);
+    // Filter games created by this teacher
+    const games = useMemo(() => {
+        return allAssessments.filter(a => a.type === 'game' && a.created_by === user?.id);
+    }, [allAssessments, user]);
 
-        const allClasses = storage.classes.getAll();
-        setClasses(allClasses.filter(c => c.teacherId === user?.id));
+    const classes = allClasses;
 
-        setSubjects(storage.subjects.getAll());
-    };
-
-    const handleDelete = (gameId) => {
+    const handleDelete = async (gameId) => {
         if (confirm('Delete this game?')) {
-            storage.assessments.delete(gameId);
-            loadData();
+            try {
+                await deleteRecord('assessments', gameId);
+                refetchAssessments();
+            } catch (error) {
+                alert('Error deleting: ' + error.message);
+            }
         }
     };
 
@@ -118,7 +116,7 @@ export default function TeacherGamesPage() {
                 userId={user?.id}
                 onBack={() => setStep('select')}
                 onSave={() => {
-                    loadData();
+                    refetchAssessments();
                     setStep('list');
                 }}
             />
@@ -126,7 +124,7 @@ export default function TeacherGamesPage() {
     }
 
     if (step === 'preview' && previewGame) {
-        const template = GAME_TEMPLATES.find(t => t.id === previewGame.gameType);
+        const template = GAME_TEMPLATES.find(t => t.id === previewGame.game_type);
         return (
             <GamePreview
                 game={previewGame}
@@ -150,7 +148,7 @@ export default function TeacherGamesPage() {
             {games.length > 0 ? (
                 <div className="space-y-3">
                     {games.map((game) => {
-                        const template = GAME_TEMPLATES.find(t => t.id === game.gameType);
+                        const template = GAME_TEMPLATES.find(t => t.id === game.game_type);
                         return (
                             <div
                                 key={game.id}
@@ -221,18 +219,19 @@ function GameCreator({ template, classes, subjects, userId, onBack, onSave }) {
 
     const [formData, setFormData] = useState({
         title: '',
-        subjectId: '',
-        classIds: [],
-        gameType: template.id,
-        gameData: getInitialGameData(),
-        maxPlays: 0, // 0 = unlimited
+        subject_id: '',
+        class_id: '',
+        game_type: template.id,
+        game_data: getInitialGameData(),
+        max_plays: 0, // 0 = unlimited
     });
+    const [saving, setSaving] = useState(false);
 
     // Safely get items array
     const getItems = () => {
-        if (!formData.gameData) return [];
-        if (Array.isArray(formData.gameData)) return formData.gameData;
-        if (Array.isArray(formData.gameData.items)) return formData.gameData.items;
+        if (!formData.game_data) return [];
+        if (Array.isArray(formData.game_data)) return formData.game_data;
+        if (Array.isArray(formData.game_data.items)) return formData.game_data.items;
         return [];
     };
 
@@ -243,24 +242,24 @@ function GameCreator({ template, classes, subjects, userId, onBack, onSave }) {
         if (template.id === 'match_pairs') {
             setFormData(prev => ({
                 ...prev,
-                gameData: {
-                    ...prev.gameData,
+                game_data: {
+                    ...prev.game_data,
                     items: [...currentItems, { id: newId, text1: '', text2: '', image1: null, image2: null }],
                 },
             }));
         } else if (template.id === 'word_scramble') {
             setFormData(prev => ({
                 ...prev,
-                gameData: {
-                    ...prev.gameData,
+                game_data: {
+                    ...prev.game_data,
                     items: [...currentItems, { id: newId, word: '', hint: '' }],
                 },
             }));
         } else if (template.id === 'sequence') {
             setFormData(prev => ({
                 ...prev,
-                gameData: {
-                    ...prev.gameData,
+                game_data: {
+                    ...prev.game_data,
                     items: [...currentItems, { id: newId, text: '', order: currentItems.length + 1 }],
                 },
             }));
@@ -272,7 +271,7 @@ function GameCreator({ template, classes, subjects, userId, onBack, onSave }) {
         items[index] = { ...items[index], ...updates };
         setFormData(prev => ({
             ...prev,
-            gameData: { ...prev.gameData, items },
+            game_data: { ...prev.game_data, items },
         }));
     };
 
@@ -288,14 +287,21 @@ function GameCreator({ template, classes, subjects, userId, onBack, onSave }) {
         }
     };
 
-    const handleSubmit = () => {
-        const game = {
-            ...formData,
-            type: 'game',
-            createdBy: userId,
-        };
-        storage.assessments.create(game);
-        onSave();
+    const handleSubmit = async () => {
+        setSaving(true);
+        try {
+            const game = {
+                ...formData,
+                type: 'game',
+                created_by: userId,
+            };
+            await createRecord('assessments', game);
+            onSave();
+        } catch (error) {
+            alert('Error creating game: ' + error.message);
+        } finally {
+            setSaving(false);
+        }
     };
 
     return (
@@ -322,8 +328,8 @@ function GameCreator({ template, classes, subjects, userId, onBack, onSave }) {
                 <div>
                     <label className="block text-sm font-medium text-text-main mb-1">Subject</label>
                     <select
-                        value={formData.subjectId}
-                        onChange={(e) => setFormData({ ...formData, subjectId: e.target.value })}
+                        value={formData.subject_id}
+                        onChange={(e) => setFormData({ ...formData, subject_id: e.target.value })}
                         className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary outline-none"
                     >
                         <option value="">Select subject</option>
@@ -338,8 +344,8 @@ function GameCreator({ template, classes, subjects, userId, onBack, onSave }) {
                     <input
                         type="number"
                         min="0"
-                        value={formData.maxPlays}
-                        onChange={(e) => setFormData({ ...formData, maxPlays: parseInt(e.target.value) || 0 })}
+                        value={formData.max_plays}
+                        onChange={(e) => setFormData({ ...formData, max_plays: parseInt(e.target.value) || 0 })}
                         placeholder="0"
                         className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary outline-none"
                     />
@@ -357,7 +363,7 @@ function GameCreator({ template, classes, subjects, userId, onBack, onSave }) {
                                     <button
                                         onClick={() => {
                                             const items = getItems().filter((_, idx) => idx !== i);
-                                            setFormData(prev => ({ ...prev, gameData: { ...prev.gameData, items } }));
+                                            setFormData(prev => ({ ...prev, game_data: { ...prev.game_data, items } }));
                                         }}
                                         className="text-red-500"
                                     >
@@ -489,17 +495,17 @@ function GameCreator({ template, classes, subjects, userId, onBack, onSave }) {
                         <div>
                             <h3 className="font-bold text-text-main mb-2">📊 Categories</h3>
                             <div className="flex gap-2">
-                                {formData.gameData.categories?.map((cat, i) => (
+                                {formData.game_data.categories?.map((cat, i) => (
                                     <input
                                         key={i}
                                         type="text"
                                         value={cat}
                                         onChange={(e) => {
-                                            const categories = [...formData.gameData.categories];
+                                            const categories = [...formData.game_data.categories];
                                             categories[i] = e.target.value;
                                             setFormData(prev => ({
                                                 ...prev,
-                                                gameData: { ...prev.gameData, categories }
+                                                game_data: { ...prev.game_data, categories }
                                             }));
                                         }}
                                         className="flex-1 px-3 py-2 rounded-lg border border-gray-200 text-sm"
@@ -509,17 +515,17 @@ function GameCreator({ template, classes, subjects, userId, onBack, onSave }) {
                         </div>
                         <div>
                             <h3 className="font-bold text-text-main mb-2">Items to Sort</h3>
-                            {formData.gameData.items?.map((item, i) => (
+                            {formData.game_data.items?.map((item, i) => (
                                 <div key={item.id} className="flex gap-2 mb-2">
                                     <input
                                         type="text"
                                         value={item.text}
                                         onChange={(e) => {
-                                            const items = [...formData.gameData.items];
+                                            const items = [...formData.game_data.items];
                                             items[i] = { ...items[i], text: e.target.value };
                                             setFormData(prev => ({
                                                 ...prev,
-                                                gameData: { ...prev.gameData, items }
+                                                game_data: { ...prev.game_data, items }
                                             }));
                                         }}
                                         placeholder="Item name"
@@ -528,17 +534,17 @@ function GameCreator({ template, classes, subjects, userId, onBack, onSave }) {
                                     <select
                                         value={item.category || ''}
                                         onChange={(e) => {
-                                            const items = [...formData.gameData.items];
+                                            const items = [...formData.game_data.items];
                                             items[i] = { ...items[i], category: e.target.value };
                                             setFormData(prev => ({
                                                 ...prev,
-                                                gameData: { ...prev.gameData, items }
+                                                game_data: { ...prev.game_data, items }
                                             }));
                                         }}
                                         className="px-3 py-2 rounded-lg border border-gray-200 text-sm"
                                     >
                                         <option value="">Correct category</option>
-                                        {formData.gameData.categories?.map((cat, idx) => (
+                                        {formData.game_data.categories?.map((cat, idx) => (
                                             <option key={idx} value={cat}>{cat}</option>
                                         ))}
                                     </select>
@@ -549,9 +555,9 @@ function GameCreator({ template, classes, subjects, userId, onBack, onSave }) {
                                     const newId = crypto.randomUUID();
                                     setFormData(prev => ({
                                         ...prev,
-                                        gameData: {
-                                            ...prev.gameData,
-                                            items: [...(prev.gameData.items || []), { id: newId, text: '', category: '' }]
+                                        game_data: {
+                                            ...prev.game_data,
+                                            items: [...(prev.game_data.items || []), { id: newId, text: '', category: '' }]
                                         }
                                     }));
                                 }}
@@ -565,33 +571,25 @@ function GameCreator({ template, classes, subjects, userId, onBack, onSave }) {
 
                 {/* Class Assignment */}
                 <div>
-                    <label className="block text-sm font-medium text-text-main mb-2">Assign to Classes</label>
-                    <div className="flex flex-wrap gap-2">
+                    <label className="block text-sm font-medium text-text-main mb-2">Assign to Class</label>
+                    <select
+                        value={formData.class_id}
+                        onChange={(e) => setFormData({ ...formData, class_id: e.target.value })}
+                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary outline-none"
+                    >
+                        <option value="">Select a class</option>
                         {classes.map((cls) => (
-                            <button
-                                key={cls.id}
-                                onClick={() => {
-                                    const newIds = formData.classIds.includes(cls.id)
-                                        ? formData.classIds.filter(id => id !== cls.id)
-                                        : [...formData.classIds, cls.id];
-                                    setFormData({ ...formData, classIds: newIds });
-                                }}
-                                className={`px-3 py-1.5 rounded-full text-sm font-medium ${formData.classIds.includes(cls.id)
-                                    ? 'bg-primary text-white'
-                                    : 'bg-gray-100 text-text-muted'
-                                    }`}
-                            >
-                                {cls.name}
-                            </button>
+                            <option key={cls.id} value={cls.id}>{cls.name}</option>
                         ))}
-                    </div>
+                    </select>
                 </div>
 
                 <button
                     onClick={handleSubmit}
-                    className="w-full py-3 bg-primary text-white font-bold rounded-xl"
+                    disabled={saving}
+                    className="w-full py-3 bg-primary text-white font-bold rounded-xl disabled:opacity-50"
                 >
-                    Create Game
+                    {saving ? 'Creating...' : 'Create Game'}
                 </button>
             </div>
         </div>
@@ -608,10 +606,10 @@ function GamePreview({ game, template, onBack }) {
     const [sequenceOrder, setSequenceOrder] = useState([]);
 
     const getItems = () => {
-        if (game.gameType === 'sorting') {
-            return game.gameData?.items || [];
+        if (game.game_type === 'sorting') {
+            return game.game_data?.items || [];
         }
-        return game.gameData?.items || game.gameData || [];
+        return game.game_data?.items || game.game_data || [];
     };
 
     const items = getItems();
@@ -671,7 +669,7 @@ function GamePreview({ game, template, onBack }) {
 
     // Sorting Game Preview
     const renderSorting = () => {
-        const categories = game.gameData?.categories || ['Category 1', 'Category 2'];
+        const categories = game.game_data?.categories || ['Category 1', 'Category 2'];
 
         return (
             <div className="space-y-4">

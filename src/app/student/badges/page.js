@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useGame } from '@/contexts/GameContext';
-import storage from '@/lib/storage';
 
 export default function StudentBadgesPage() {
     const { user } = useAuth();

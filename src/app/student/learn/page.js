@@ -1,49 +1,41 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useGame } from '@/contexts/GameContext';
-import storage from '@/lib/storage';
+import { useEnrollments, useAssignments, useSubmissions } from '@/hooks/useSupabaseData';
 import Link from 'next/link';
 
 export default function StudentHomePage() {
     const { user } = useAuth();
-    const { level, xp } = useGame();
-    const [stats, setStats] = useState({
-        pendingAssignments: 0,
-        completedVideos: 0,
-        badgesCount: 0,
-    });
+    const { level, xp, getUnlockedBadges } = useGame();
+    const { data: enrollments, loading: enrollmentsLoading } = useEnrollments({ student_id: user?.id });
+    const { data: allAssignments, loading: assignmentsLoading } = useAssignments();
+    const { data: allSubmissions, loading: submissionsLoading } = useSubmissions({ student_id: user?.id });
+
     const [randomQuote, setRandomQuote] = useState('');
 
-    useEffect(() => {
-        if (!user) return;
+    const isLoading = enrollmentsLoading || assignmentsLoading || submissionsLoading;
 
-        // Assignments Stats
-        const enrollments = storage.enrollments.getAll().filter(e => e.studentId === user.id);
-        const classIds = enrollments.map(e => e.classId);
-        const allAssignments = storage.assignments.getAll().filter(a =>
-            a.classIds?.some(cid => classIds.includes(cid))
-        );
-        const pendingCount = allAssignments.filter(a => {
-            const submission = storage.submissions.getAll()
-                .find(s => s.assignmentId === a.id && s.studentId === user.id);
+    // Calculate stats
+    const stats = useMemo(() => {
+        const classIds = enrollments.map(e => e.class_id);
+        const myAssignments = allAssignments.filter(a => classIds.includes(a.class_id));
+        const pendingCount = myAssignments.filter(a => {
+            const submission = allSubmissions.find(s => s.assignment_id === a.id);
             return !submission;
         }).length;
 
-        // Video Stats
-        const viewedVideos = storage.getVideoProgress?.(user.id) || [];
-        const completedVideos = viewedVideos.filter(v => v.completed).length;
+        const earnedBadges = getUnlockedBadges?.() || [];
 
-        // Badge Stats
-        const earnedBadges = storage.getBadges?.(user.id) || [];
-
-        setStats({
+        return {
             pendingAssignments: pendingCount,
-            completedVideos,
+            completedVideos: 0, // Would need video progress tracking
             badgesCount: earnedBadges.length,
-        });
+        };
+    }, [enrollments, allAssignments, allSubmissions, getUnlockedBadges]);
 
+    useEffect(() => {
         const quotes = [
             "Learning is a superpower! 🦸‍♂️",
             "Every mistake is a lesson! 📚",
@@ -52,8 +44,18 @@ export default function StudentHomePage() {
             "Knowledge is power! 💡"
         ];
         setRandomQuote(quotes[Math.floor(Math.random() * quotes.length)]);
+    }, []);
 
-    }, [user]);
+    if (isLoading) {
+        return (
+            <div className="p-4 flex items-center justify-center min-h-[50vh]">
+                <div className="text-center">
+                    <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                    <p className="text-text-muted">Loading...</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="p-4 space-y-6 pb-24">

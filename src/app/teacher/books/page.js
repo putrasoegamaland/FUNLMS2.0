@@ -1,39 +1,35 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import storage from '@/lib/storage';
+import { useBooks, useClasses, createRecord, updateRecord, deleteRecord } from '@/hooks/useSupabaseData';
 import { processPDF, formatFileSize } from '@/lib/fileUtils';
 
 export default function TeacherBooksPage() {
     const { user } = useAuth();
-    const [books, setBooks] = useState([]);
-    const [classes, setClasses] = useState([]);
+    const { data: allBooks, loading: booksLoading, refetch: refetchBooks } = useBooks();
+    const { data: allClasses, loading: classesLoading } = useClasses({ teacher_id: user?.id });
+
     const [filter, setFilter] = useState('all');
     const [showModal, setShowModal] = useState(false);
     const [editingBook, setEditingBook] = useState(null);
 
-    useEffect(() => {
-        loadData();
-    }, [user]);
-
-    const loadData = () => {
-        const allBooks = storage.books.getAll();
-        setBooks(allBooks);
-
-        const allClasses = storage.classes.getAll();
-        const teacherClasses = allClasses.filter(c => c.teacherId === user?.id);
-        setClasses(teacherClasses);
-    };
+    const isLoading = booksLoading || classesLoading;
+    const books = allBooks;
+    const classes = allClasses;
 
     const filteredBooks = filter === 'all'
         ? books
-        : books.filter(b => b.classIds?.includes(filter));
+        : books.filter(b => b.class_id === filter);
 
-    const handleDelete = (bookId) => {
+    const handleDelete = async (bookId) => {
         if (confirm('Delete this book?')) {
-            storage.books.delete(bookId);
-            loadData();
+            try {
+                await deleteRecord('books', bookId);
+                refetchBooks();
+            } catch (error) {
+                alert('Error deleting: ' + error.message);
+            }
         }
     };
 
@@ -113,9 +109,10 @@ export default function TeacherBooksPage() {
                 <BookModal
                     book={editingBook}
                     classes={classes}
+                    refetchBooks={refetchBooks}
                     onClose={() => setShowModal(false)}
                     onSave={() => {
-                        loadData();
+                        refetchBooks();
                         setShowModal(false);
                     }}
                 />
@@ -128,17 +125,15 @@ function BookCard({ book, classes, onEdit, onDelete }) {
     const bookColors = ['bg-yellow-400', 'bg-pink-400', 'bg-blue-400', 'bg-green-400', 'bg-purple-400', 'bg-orange-400'];
     const colorIndex = book.id?.charCodeAt(0) % bookColors.length || 0;
 
-    const assignedClasses = classes.filter(c => book.classIds?.includes(c.id));
-    const classLabel = assignedClasses.length > 0
-        ? assignedClasses.map(c => c.name).join(', ')
-        : 'All Classes';
+    const assignedClass = classes.find(c => c.id === book.class_id);
+    const classLabel = assignedClass ? assignedClass.name : 'All Classes';
 
     return (
         <div className="relative group">
             <div className={`${bookColors[colorIndex]} rounded-2xl p-4 h-40 flex flex-col justify-between`}>
                 <div className="flex justify-between">
-                    <div className="text-4xl">{book.coverEmoji || '📖'}</div>
-                    {book.pdfData && (
+                    <div className="text-4xl">{book.cover_emoji || '📖'}</div>
+                    {book.pdf_data && (
                         <div className="bg-white/20 px-2 py-1 rounded text-xs text-white font-medium">
                             PDF
                         </div>
@@ -169,31 +164,23 @@ function BookCard({ book, classes, onEdit, onDelete }) {
     );
 }
 
-function BookModal({ book, classes, onClose, onSave }) {
+function BookModal({ book, classes, refetchBooks, onClose, onSave }) {
     const fileInputRef = useRef(null);
     const [uploading, setUploading] = useState(false);
+    const [saving, setSaving] = useState(false);
     const [error, setError] = useState(null);
     const [formData, setFormData] = useState({
         title: book?.title || '',
         author: book?.author || '',
         description: book?.description || '',
-        coverEmoji: book?.coverEmoji || '📖',
-        classIds: book?.classIds || [],
-        pdfData: book?.pdfData || null,
-        pdfName: book?.pdfName || null,
-        pdfSize: book?.pdfSize || null,
+        cover_emoji: book?.cover_emoji || '📖',
+        class_id: book?.class_id || '',
+        pdf_data: book?.pdf_data || null,
+        pdf_name: book?.pdf_name || null,
+        pdf_size: book?.pdf_size || null,
     });
 
     const emojis = ['📖', '📚', '🦁', '🚀', '🍎', '🌊', '🦒', '🎨', '🔢', '🌿', '🐶', '🌈'];
-
-    const toggleClass = (classId) => {
-        setFormData(prev => ({
-            ...prev,
-            classIds: prev.classIds.includes(classId)
-                ? prev.classIds.filter(id => id !== classId)
-                : [...prev.classIds, classId]
-        }));
-    };
 
     const handlePDFUpload = async (e) => {
         const file = e.target.files?.[0];
@@ -207,9 +194,9 @@ function BookModal({ book, classes, onClose, onSave }) {
         if (result.success) {
             setFormData(prev => ({
                 ...prev,
-                pdfData: result.data,
-                pdfName: result.name,
-                pdfSize: result.size,
+                pdf_data: result.data,
+                pdf_name: result.name,
+                pdf_size: result.size,
             }));
         } else {
             setError(result.error);
@@ -221,22 +208,28 @@ function BookModal({ book, classes, onClose, onSave }) {
     const removePDF = () => {
         setFormData(prev => ({
             ...prev,
-            pdfData: null,
-            pdfName: null,
-            pdfSize: null,
+            pdf_data: null,
+            pdf_name: null,
+            pdf_size: null,
         }));
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
+        setSaving(true);
 
-        if (book) {
-            storage.books.update(book.id, formData);
-        } else {
-            storage.books.create(formData);
+        try {
+            if (book) {
+                await updateRecord('books', book.id, formData);
+            } else {
+                await createRecord('books', formData);
+            }
+            onSave();
+        } catch (err) {
+            setError('Error saving book: ' + err.message);
+        } finally {
+            setSaving(false);
         }
-
-        onSave();
     };
 
     return (
@@ -262,8 +255,8 @@ function BookModal({ book, classes, onClose, onSave }) {
                                     <button
                                         key={emoji}
                                         type="button"
-                                        onClick={() => setFormData({ ...formData, coverEmoji: emoji })}
-                                        className={`w-10 h-10 rounded-lg border-2 text-xl ${formData.coverEmoji === emoji ? 'border-primary bg-primary/10' : 'border-gray-200'
+                                        onClick={() => setFormData({ ...formData, cover_emoji: emoji })}
+                                        className={`w-10 h-10 rounded-lg border-2 text-xl ${formData.cover_emoji === emoji ? 'border-primary bg-primary/10' : 'border-gray-200'
                                             }`}
                                     >
                                         {emoji}
@@ -306,12 +299,12 @@ function BookModal({ book, classes, onClose, onSave }) {
                         {/* PDF Upload */}
                         <div>
                             <label className="block text-sm font-medium text-text-main mb-2">PDF File</label>
-                            {formData.pdfData ? (
+                            {formData.pdf_data ? (
                                 <div className="flex items-center gap-3 p-4 bg-green-50 border border-green-200 rounded-xl">
                                     <span className="material-symbols-outlined text-green-600" style={{ fontSize: 32 }}>picture_as_pdf</span>
                                     <div className="flex-1">
-                                        <p className="font-medium text-green-800 truncate">{formData.pdfName}</p>
-                                        <p className="text-xs text-green-600">{formatFileSize(formData.pdfSize)}</p>
+                                        <p className="font-medium text-green-800 truncate">{formData.pdf_name}</p>
+                                        <p className="text-xs text-green-600">{formatFileSize(formData.pdf_size)}</p>
                                     </div>
                                     <button
                                         type="button"
@@ -348,22 +341,17 @@ function BookModal({ book, classes, onClose, onSave }) {
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-text-main mb-2">Assign to Classes</label>
-                            <div className="flex flex-wrap gap-2">
+                            <label className="block text-sm font-medium text-text-main mb-2">Assign to Class</label>
+                            <select
+                                value={formData.class_id}
+                                onChange={(e) => setFormData({ ...formData, class_id: e.target.value })}
+                                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary outline-none"
+                            >
+                                <option value="">Select a class</option>
                                 {classes.map((cls) => (
-                                    <button
-                                        key={cls.id}
-                                        type="button"
-                                        onClick={() => toggleClass(cls.id)}
-                                        className={`px-3 py-1.5 rounded-full text-sm font-medium ${formData.classIds.includes(cls.id)
-                                            ? 'bg-primary text-white'
-                                            : 'bg-gray-100 text-text-muted'
-                                            }`}
-                                    >
-                                        {cls.name}
-                                    </button>
+                                    <option key={cls.id} value={cls.id}>{cls.name}</option>
                                 ))}
-                            </div>
+                            </select>
                         </div>
                     </div>
 
@@ -371,9 +359,10 @@ function BookModal({ book, classes, onClose, onSave }) {
                     <div className="p-4 border-t border-gray-100 bg-white shrink-0">
                         <button
                             type="submit"
-                            className="w-full py-3 bg-primary text-text-main font-bold rounded-xl hover:opacity-90 transition-opacity"
+                            disabled={saving}
+                            className="w-full py-3 bg-primary text-text-main font-bold rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50"
                         >
-                            {book ? 'Update Book' : 'Add Book'}
+                            {saving ? 'Saving...' : (book ? 'Update Book' : 'Add Book')}
                         </button>
                     </div>
                 </form>

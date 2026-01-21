@@ -2,41 +2,53 @@
 
 import { useState, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
-import storage from '@/lib/storage';
+import { useClasses, useUsers, useEnrollments, createRecord, updateRecord, deleteRecord } from '@/hooks/useSupabaseData';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 
 export default function AdminClassesPage() {
     const { t } = useLanguage();
-    const [classes, setClasses] = useState([]);
-    const [filter, setFilter] = useState('all');
+    const { data: rawClasses, loading: classesLoading, refetch: refetchClasses } = useClasses();
+    const { data: users, loading: usersLoading, refetch: refetchUsers } = useUsers();
+    const { data: enrollments, loading: enrollmentsLoading, refetch: refetchEnrollments } = useEnrollments();
+
+    const [filter, setFilter] = useState('All');
     const [showModal, setShowModal] = useState(false);
     const [showActionSheet, setShowActionSheet] = useState(null);
     const [editingClass, setEditingClass] = useState(null);
+    const [searchQuery, setSearchQuery] = useState('');
 
-    useEffect(() => {
-        loadClasses();
-    }, []);
+    const isLoading = classesLoading || usersLoading || enrollmentsLoading;
 
-    const loadClasses = () => {
-        const allClasses = storage.classes.getAll();
-        const withDetails = allClasses.map(cls => {
-            const teacher = storage.users.getById(cls.teacherId);
-            const enrollments = storage.enrollments.getAll().filter(e => e.classId === cls.id);
-            return {
-                ...cls,
-                teacherName: teacher?.name || 'Unassigned',
-                studentCount: enrollments.length,
-            };
-        });
-        setClasses(withDetails);
-    };
+    // Enrich classes with teacher names and student counts
+    const classes = rawClasses.map(cls => {
+        const teacher = users.find(u => u.id === cls.teacher_id);
+        const classEnrollments = enrollments.filter(e => e.class_id === cls.id);
+        return {
+            ...cls,
+            teacherName: teacher?.name || 'Unassigned',
+            studentCount: classEnrollments.length,
+        };
+    });
 
-    const handleDelete = (classId) => {
+    // Filter classes
+    const filteredClasses = classes.filter(cls => {
+        const matchesFilter = filter === 'All' || cls.level === filter;
+        const matchesSearch = cls.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            cls.teacherName?.toLowerCase().includes(searchQuery.toLowerCase());
+        return matchesFilter && matchesSearch;
+    });
+
+    const handleDelete = async (classId) => {
         if (confirm('Are you sure you want to delete this class?')) {
-            storage.classes.delete(classId);
-            // Also delete enrollments for this class
-            const enrollments = storage.enrollments.getAll();
-            enrollments.filter(e => e.classId === classId).forEach(e => storage.enrollments.delete(e.id));
-            loadClasses();
+            // Delete enrollments first
+            const classEnrollments = enrollments.filter(e => e.class_id === classId);
+            for (const e of classEnrollments) {
+                await deleteRecord('enrollments', e.id);
+            }
+            // Delete class
+            await deleteRecord('classes', classId);
+            refetchClasses();
+            refetchEnrollments();
         }
         setShowActionSheet(null);
     };
@@ -47,16 +59,30 @@ export default function AdminClassesPage() {
         setShowActionSheet(null);
     };
 
+    const handleSave = () => {
+        refetchClasses();
+        refetchEnrollments();
+        setShowModal(false);
+    };
+
     const levels = ['All', 'Kindergarten', 'Grade 1', 'Grade 2', 'Grade 3'];
+
+    if (isLoading) {
+        return (
+            <div className="p-4 flex items-center justify-center min-h-[50vh]">
+                <div className="text-center">
+                    <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                    <p className="text-text-muted">Loading classes...</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="p-4 space-y-4">
             {/* Header */}
             <div className="flex items-center justify-between">
-                <h2 className="text-lg font-bold text-text-main">Manage Classes</h2>
-                <button className="p-2 rounded-lg hover:bg-gray-100">
-                    <span className="material-symbols-outlined text-text-muted">tune</span>
-                </button>
+                <h2 className="text-lg font-bold text-text-main">🎓 Manage Classes</h2>
             </div>
 
             {/* Search */}
@@ -67,6 +93,8 @@ export default function AdminClassesPage() {
                 <input
                     type="text"
                     placeholder="Search classes or teachers"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
                     className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none text-sm"
                 />
             </div>
@@ -78,8 +106,8 @@ export default function AdminClassesPage() {
                         key={level}
                         onClick={() => setFilter(level)}
                         className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${filter === level
-                                ? 'bg-primary text-white'
-                                : 'bg-gray-100 text-text-muted hover:bg-gray-200'
+                            ? 'bg-primary text-white'
+                            : 'bg-gray-100 text-text-muted hover:bg-gray-200'
                             }`}
                     >
                         {level}
@@ -89,14 +117,14 @@ export default function AdminClassesPage() {
 
             {/* Classes List */}
             <div className="space-y-3">
-                {classes.map((cls) => (
+                {filteredClasses.map((cls) => (
                     <ClassCard
                         key={cls.id}
                         classData={cls}
                         onTap={() => setShowActionSheet(cls)}
                     />
                 ))}
-                {classes.length === 0 && (
+                {filteredClasses.length === 0 && (
                     <div className="text-center py-8 text-text-muted">
                         No classes found. Create one!
                     </div>
@@ -128,11 +156,10 @@ export default function AdminClassesPage() {
             {showModal && (
                 <ClassModal
                     classData={editingClass}
+                    users={users}
+                    enrollments={enrollments}
                     onClose={() => setShowModal(false)}
-                    onSave={() => {
-                        loadClasses();
-                        setShowModal(false);
-                    }}
+                    onSave={handleSave}
                 />
             )}
         </div>
@@ -152,8 +179,8 @@ function ClassCard({ classData, onTap }) {
             onClick={onTap}
             className="w-full flex items-center gap-4 p-4 rounded-xl bg-card-light border border-gray-100 shadow-sm text-left hover:shadow-md transition-shadow"
         >
-            <div className={`w-12 h-12 rounded-xl ${levelColors[classData.level] || 'bg-gray-500'} flex items-center justify-center text-white font-bold`}>
-                {classData.name.charAt(classData.name.length - 1)}
+            <div className={`w-12 h-12 rounded-xl ${levelColors[classData.level] || 'bg-gray-500'} flex items-center justify-center text-white text-xl`}>
+                {classData.emoji || '📚'}
             </div>
             <div className="flex-1 min-w-0">
                 <p className="font-bold text-text-main">{classData.name}</p>
@@ -174,12 +201,12 @@ function ActionSheet({ classData, onClose, onEdit, onDelete }) {
         <div className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center" onClick={onClose}>
             <div className="w-full max-w-md bg-white rounded-t-3xl p-6" onClick={(e) => e.stopPropagation()}>
                 <div className="flex items-center gap-3 mb-6">
-                    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                        🎓
+                    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-2xl">
+                        {classData.emoji || '🎓'}
                     </div>
                     <div>
                         <h3 className="font-bold text-text-main">{classData.name}</h3>
-                        <p className="text-sm text-text-muted">{classData.studentCount} Students • Room 104</p>
+                        <p className="text-sm text-text-muted">{classData.studentCount} Students</p>
                     </div>
                 </div>
 
@@ -189,14 +216,7 @@ function ActionSheet({ classData, onClose, onEdit, onDelete }) {
                         className="w-full flex items-center gap-3 p-4 rounded-xl bg-primary text-white font-bold"
                     >
                         <span className="material-symbols-outlined">edit</span>
-                        Edit Student List
-                    </button>
-                    <button
-                        onClick={onEdit}
-                        className="w-full flex items-center gap-3 p-4 rounded-xl border border-gray-200 text-text-main font-medium hover:bg-gray-50"
-                    >
-                        <span className="material-symbols-outlined text-text-muted">swap_horiz</span>
-                        Reassign Teacher
+                        Edit Class
                     </button>
                     <button
                         onClick={onDelete}
@@ -218,28 +238,26 @@ function ActionSheet({ classData, onClose, onEdit, onDelete }) {
     );
 }
 
-function ClassModal({ classData, onClose, onSave }) {
-    const [teachers, setTeachers] = useState([]);
-    const [students, setStudents] = useState([]);
+function ClassModal({ classData, users, enrollments, onClose, onSave }) {
+    const teachers = users.filter(u => u.role === 'teacher');
+    const students = users.filter(u => u.role === 'student');
+
     const [selectedStudents, setSelectedStudents] = useState([]);
     const [formData, setFormData] = useState({
         name: classData?.name || '',
+        emoji: classData?.emoji || '📚',
         level: classData?.level || 'Grade 1',
-        curriculum: classData?.curriculum || 'Standard',
-        teacherId: classData?.teacherId || '',
-        generation: classData?.generation || new Date().getFullYear().toString(),
+        teacher_id: classData?.teacher_id || '',
+        description: classData?.description || '',
     });
+    const [saving, setSaving] = useState(false);
 
     useEffect(() => {
-        const allUsers = storage.users.getAll();
-        setTeachers(allUsers.filter(u => u.role === 'teacher'));
-        setStudents(allUsers.filter(u => u.role === 'student'));
-
         if (classData) {
-            const enrollments = storage.enrollments.getAll().filter(e => e.classId === classData.id);
-            setSelectedStudents(enrollments.map(e => e.studentId));
+            const classEnrollments = enrollments.filter(e => e.class_id === classData.id);
+            setSelectedStudents(classEnrollments.map(e => e.student_id));
         }
-    }, [classData]);
+    }, [classData, enrollments]);
 
     const toggleStudent = (studentId) => {
         setSelectedStudents(prev =>
@@ -249,117 +267,159 @@ function ClassModal({ classData, onClose, onSave }) {
         );
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
+        setSaving(true);
 
-        let classId;
-        if (classData) {
-            storage.classes.update(classData.id, formData);
-            classId = classData.id;
-            // Clear old enrollments
-            const oldEnrollments = storage.enrollments.getAll().filter(e => e.classId === classId);
-            oldEnrollments.forEach(e => storage.enrollments.delete(e.id));
-        } else {
-            const newClass = storage.classes.create(formData);
-            classId = newClass.id;
+        try {
+            let classId;
+            if (classData) {
+                await updateRecord('classes', classData.id, formData);
+                classId = classData.id;
+
+                // Clear old enrollments
+                const oldEnrollments = enrollments.filter(e => e.class_id === classId);
+                for (const e of oldEnrollments) {
+                    await deleteRecord('enrollments', e.id);
+                }
+            } else {
+                const newClass = await createRecord('classes', formData);
+                classId = newClass.id;
+            }
+
+            // Add new enrollments
+            for (const studentId of selectedStudents) {
+                await createRecord('enrollments', { class_id: classId, student_id: studentId });
+            }
+
+            onSave();
+        } catch (error) {
+            console.error('Error saving class:', error);
+            alert('Error saving class: ' + error.message);
+        } finally {
+            setSaving(false);
         }
-
-        // Add new enrollments
-        selectedStudents.forEach(studentId => {
-            storage.enrollments.create({ classId, studentId });
-        });
-
-        onSave();
     };
+
+    const emojis = ['📚', '🌟', '🌈', '🎨', '🔬', '🎵', '⚽', '🌸'];
 
     return (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-            <div className="w-full max-w-md bg-white rounded-2xl p-6 max-h-[90vh] overflow-y-auto">
-                <div className="flex items-center justify-between mb-6">
+            <div className="w-full max-w-md bg-white rounded-2xl flex flex-col max-h-[90vh]">
+                <div className="flex items-center justify-between p-6 pb-4 shrink-0 border-b">
                     <button onClick={onClose} className="text-text-muted">Cancel</button>
-                    <h3 className="font-bold text-text-main">New Class</h3>
+                    <h3 className="font-bold text-text-main">{classData ? 'Edit Class' : 'New Class'}</h3>
                     <div className="w-16" />
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <div>
-                        <label className="block text-sm font-medium text-text-main mb-1">Class Name</label>
-                        <input
-                            type="text"
-                            value={formData.name}
-                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                            placeholder="e.g., Grade 2 - Sunflowers"
-                            className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary outline-none"
-                            required
-                        />
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-text-main mb-1">Level</label>
-                        <select
-                            value={formData.level}
-                            onChange={(e) => setFormData({ ...formData, level: e.target.value })}
-                            className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary outline-none"
-                        >
-                            <option>Kindergarten</option>
-                            <option>Grade 1</option>
-                            <option>Grade 2</option>
-                            <option>Grade 3</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-text-main mb-1">Assign Teacher</label>
-                        <select
-                            value={formData.teacherId}
-                            onChange={(e) => setFormData({ ...formData, teacherId: e.target.value })}
-                            className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary outline-none"
-                        >
-                            <option value="">Select a lead teacher</option>
-                            {teachers.map(t => (
-                                <option key={t.id} value={t.id}>{t.name}</option>
-                            ))}
-                        </select>
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-text-main mb-1">Add Students</label>
-                        <div className="border border-gray-200 rounded-xl max-h-48 overflow-y-auto">
-                            {students.map(student => (
-                                <button
-                                    key={student.id}
-                                    type="button"
-                                    onClick={() => toggleStudent(student.id)}
-                                    className="w-full flex items-center gap-3 p-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
-                                >
-                                    <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-sm">
-                                        👧
-                                    </div>
-                                    <div className="flex-1 text-left">
-                                        <p className="font-medium text-text-main">{student.name}</p>
-                                        <p className="text-xs text-text-muted">Grade {student.generation || '?'}</p>
-                                    </div>
-                                    <div className={`w-6 h-6 rounded-full border-2 ${selectedStudents.includes(student.id)
-                                            ? 'bg-primary border-primary'
-                                            : 'border-gray-300'
-                                        } flex items-center justify-center`}>
-                                        {selectedStudents.includes(student.id) && (
-                                            <span className="material-symbols-outlined text-white" style={{ fontSize: 16 }}>check</span>
-                                        )}
-                                    </div>
-                                </button>
-                            ))}
+                <div className="flex-1 overflow-y-auto p-6">
+                    <form id="class-form" onSubmit={handleSubmit} className="space-y-4">
+                        {/* Emoji Picker */}
+                        <div>
+                            <label className="block text-sm font-medium text-text-main mb-2">Icon</label>
+                            <div className="flex gap-2 flex-wrap">
+                                {emojis.map(emoji => (
+                                    <button
+                                        key={emoji}
+                                        type="button"
+                                        onClick={() => setFormData({ ...formData, emoji })}
+                                        className={`w-10 h-10 rounded-lg text-xl flex items-center justify-center transition-all ${formData.emoji === emoji ? 'bg-primary/20 ring-2 ring-primary' : 'bg-gray-100 hover:bg-gray-200'
+                                            }`}
+                                    >
+                                        {emoji}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
-                    </div>
 
+                        <div>
+                            <label className="block text-sm font-medium text-text-main mb-1">Class Name</label>
+                            <input
+                                type="text"
+                                value={formData.name}
+                                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                placeholder="e.g., Grade 2 - Sunflowers"
+                                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary outline-none"
+                                required
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-text-main mb-1">Level</label>
+                            <select
+                                value={formData.level}
+                                onChange={(e) => setFormData({ ...formData, level: e.target.value })}
+                                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary outline-none"
+                            >
+                                <option>Kindergarten</option>
+                                <option>Grade 1</option>
+                                <option>Grade 2</option>
+                                <option>Grade 3</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-text-main mb-1">Assign Teacher</label>
+                            <select
+                                value={formData.teacher_id}
+                                onChange={(e) => setFormData({ ...formData, teacher_id: e.target.value })}
+                                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary outline-none"
+                            >
+                                <option value="">Select a lead teacher</option>
+                                {teachers.map(t => (
+                                    <option key={t.id} value={t.id}>{t.name}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-text-main mb-1">
+                                Add Students ({selectedStudents.length} selected)
+                            </label>
+                            <div className="border border-gray-200 rounded-xl max-h-48 overflow-y-auto">
+                                {students.length === 0 ? (
+                                    <p className="p-4 text-center text-text-muted">No students available</p>
+                                ) : (
+                                    students.map(student => (
+                                        <button
+                                            key={student.id}
+                                            type="button"
+                                            onClick={() => toggleStudent(student.id)}
+                                            className="w-full flex items-center gap-3 p-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
+                                        >
+                                            <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-sm">
+                                                {student.avatar || '👧'}
+                                            </div>
+                                            <div className="flex-1 text-left">
+                                                <p className="font-medium text-text-main">{student.name}</p>
+                                                <p className="text-xs text-text-muted">@{student.username}</p>
+                                            </div>
+                                            <div className={`w-6 h-6 rounded-full border-2 ${selectedStudents.includes(student.id)
+                                                ? 'bg-primary border-primary'
+                                                : 'border-gray-300'
+                                                } flex items-center justify-center`}>
+                                                {selectedStudents.includes(student.id) && (
+                                                    <span className="material-symbols-outlined text-white" style={{ fontSize: 16 }}>check</span>
+                                                )}
+                                            </div>
+                                        </button>
+                                    ))
+                                )}
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+                <div className="p-6 pt-4 border-t shrink-0">
                     <button
                         type="submit"
-                        className="w-full py-3 bg-primary text-white font-bold rounded-xl hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+                        form="class-form"
+                        disabled={saving}
+                        className="w-full py-3 bg-primary text-white font-bold rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2"
                     >
-                        Create Class
-                        <span className="material-symbols-outlined" style={{ fontSize: 20 }}>arrow_forward</span>
+                        {saving ? 'Saving...' : (classData ? 'Update Class' : 'Create Class')}
                     </button>
-                </form>
+                </div>
             </div>
         </div>
     );

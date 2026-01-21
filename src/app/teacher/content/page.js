@@ -1,17 +1,20 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import storage from '@/lib/storage';
+import { useSubjects, useClasses, createRecord } from '@/hooks/useSupabaseData';
 import { processImage, formatFileSize } from '@/lib/fileUtils';
 
 export default function TeacherContentPage() {
     const { user } = useAuth();
+    const { data: subjects, loading: subjectsLoading } = useSubjects();
+    const { data: allClasses, loading: classesLoading } = useClasses({ teacher_id: user?.id });
+
     const [step, setStep] = useState('type'); // type, questions, settings, preview
     const [assessmentType, setAssessmentType] = useState('multiple_choice');
     const [formData, setFormData] = useState({
         title: '',
-        subjectId: '',
+        subject_id: '',
         type: 'multiple_choice',
         questions: [],
         settings: {
@@ -23,18 +26,14 @@ export default function TeacherContentPage() {
             tabLock: false,
             allowImageAnswer: false,
         },
-        startAt: '',
-        endAt: '',
-        classIds: [],
+        start_at: '',
+        end_at: '',
+        class_id: '',
     });
-    const [subjects, setSubjects] = useState([]);
-    const [classes, setClasses] = useState([]);
+    const [saving, setSaving] = useState(false);
 
-    useEffect(() => {
-        setSubjects(storage.subjects.getAll());
-        const allClasses = storage.classes.getAll();
-        setClasses(allClasses.filter(c => c.teacherId === user?.id));
-    }, [user]);
+    const isLoading = subjectsLoading || classesLoading;
+    const classes = allClasses;
 
     const addQuestion = () => {
         const newQuestion = {
@@ -69,26 +68,33 @@ export default function TeacherContentPage() {
         }));
     };
 
-    const handleSubmit = () => {
-        const assessment = {
-            ...formData,
-            type: assessmentType,
-            createdBy: user?.id,
-        };
-        storage.assessments.create(assessment);
-        alert('Quiz created successfully!');
-        // Reset form
-        setStep('type');
-        setFormData({
-            title: '',
-            subjectId: '',
-            type: 'multiple_choice',
-            questions: [],
-            settings: { aiHints: true, hintLimit: 3, allowSkip: true, allowRedo: false, realtimeFeedback: true, tabLock: false, allowImageAnswer: false },
-            startAt: '',
-            endAt: '',
-            classIds: [],
-        });
+    const handleSubmit = async () => {
+        setSaving(true);
+        try {
+            const assessment = {
+                ...formData,
+                type: assessmentType,
+                created_by: user?.id,
+            };
+            await createRecord('assessments', assessment);
+            alert('Quiz created successfully!');
+            // Reset form
+            setStep('type');
+            setFormData({
+                title: '',
+                subject_id: '',
+                type: 'multiple_choice',
+                questions: [],
+                settings: { aiHints: true, hintLimit: 3, allowSkip: true, allowRedo: false, realtimeFeedback: true, tabLock: false, allowImageAnswer: false },
+                start_at: '',
+                end_at: '',
+                class_id: '',
+            });
+        } catch (error) {
+            alert('Error creating quiz: ' + error.message);
+        } finally {
+            setSaving(false);
+        }
     };
 
     return (
@@ -166,8 +172,8 @@ export default function TeacherContentPage() {
                     <div>
                         <label className="block text-sm font-medium text-text-main mb-1">Subject</label>
                         <select
-                            value={formData.subjectId}
-                            onChange={(e) => setFormData({ ...formData, subjectId: e.target.value })}
+                            value={formData.subject_id}
+                            onChange={(e) => setFormData({ ...formData, subject_id: e.target.value })}
                             className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary outline-none"
                         >
                             <option value="">Select subject</option>
@@ -255,8 +261,8 @@ export default function TeacherContentPage() {
                             <label className="block text-sm text-text-muted mb-1">Start Date & Time</label>
                             <input
                                 type="datetime-local"
-                                value={formData.startAt}
-                                onChange={(e) => setFormData({ ...formData, startAt: e.target.value })}
+                                value={formData.start_at}
+                                onChange={(e) => setFormData({ ...formData, start_at: e.target.value })}
                                 className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none"
                             />
                         </div>
@@ -266,8 +272,8 @@ export default function TeacherContentPage() {
                                 <label className="block text-sm text-text-muted mb-1">Deadline</label>
                                 <input
                                     type="datetime-local"
-                                    value={formData.endAt}
-                                    onChange={(e) => setFormData({ ...formData, endAt: e.target.value })}
+                                    value={formData.end_at}
+                                    onChange={(e) => setFormData({ ...formData, end_at: e.target.value })}
                                     className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none"
                                 />
                             </div>
@@ -275,26 +281,17 @@ export default function TeacherContentPage() {
                     </div>
 
                     <div className="bg-card-light rounded-xl p-4 border border-gray-100">
-                        <h3 className="font-bold text-text-main mb-3">Assign to Classes</h3>
-                        <div className="flex flex-wrap gap-2">
+                        <h3 className="font-bold text-text-main mb-3">Assign to Class</h3>
+                        <select
+                            value={formData.class_id}
+                            onChange={(e) => setFormData({ ...formData, class_id: e.target.value })}
+                            className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary outline-none"
+                        >
+                            <option value="">Select a class</option>
                             {classes.map((cls) => (
-                                <button
-                                    key={cls.id}
-                                    onClick={() => {
-                                        const newIds = formData.classIds.includes(cls.id)
-                                            ? formData.classIds.filter(id => id !== cls.id)
-                                            : [...formData.classIds, cls.id];
-                                        setFormData({ ...formData, classIds: newIds });
-                                    }}
-                                    className={`px-3 py-1.5 rounded-full text-sm font-medium ${formData.classIds.includes(cls.id)
-                                        ? 'bg-primary text-white'
-                                        : 'bg-gray-100 text-text-muted'
-                                        }`}
-                                >
-                                    {cls.name}
-                                </button>
+                                <option key={cls.id} value={cls.id}>{cls.name}</option>
                             ))}
-                        </div>
+                        </select>
                     </div>
 
                     <div className="flex gap-3">
@@ -307,9 +304,10 @@ export default function TeacherContentPage() {
                         </button>
                         <button
                             onClick={handleSubmit}
-                            className="flex-1 py-3 bg-primary text-white font-bold rounded-xl"
+                            disabled={saving}
+                            className="flex-1 py-3 bg-primary text-white font-bold rounded-xl disabled:opacity-50"
                         >
-                            Create Quiz
+                            {saving ? 'Creating...' : 'Create Quiz'}
                         </button>
                     </div>
                 </div>
@@ -546,7 +544,7 @@ function QuizPreview({ quiz, subjects, onBack, onPublish }) {
 
     const question = quiz.questions[currentQuestion];
     const totalQuestions = quiz.questions.length;
-    const subject = subjects.find(s => s.id === quiz.subjectId);
+    const subject = subjects.find(s => s.id === quiz.subject_id);
 
     if (!question) {
         return (

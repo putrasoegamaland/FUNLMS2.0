@@ -1,19 +1,23 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useGame } from '@/contexts/GameContext';
-import storage from '@/lib/storage';
+import { useEnrollments, useAssessments } from '@/hooks/useSupabaseData';
 
 function StudentGamesContent() {
     const router = useRouter();
     const { user } = useAuth();
     const { awardXP } = useGame();
-    const [games, setGames] = useState([]);
+    const { data: enrollments, loading: enrollmentsLoading } = useEnrollments({ student_id: user?.id });
+    const { data: allAssessments, loading: assessmentsLoading } = useAssessments();
+
     const [selectedGame, setSelectedGame] = useState(null);
     const [gameState, setGameState] = useState(null);
     const [playCounts, setPlayCounts] = useState({});
+
+    const isLoading = enrollmentsLoading || assessmentsLoading;
 
     // Get play count for a game
     const getPlayCount = (gameId) => {
@@ -34,29 +38,27 @@ function StudentGamesContent() {
 
     // Check if game can be played
     const canPlayGame = (game) => {
-        if (!game.maxPlays || game.maxPlays === 0) return true; // Unlimited
+        if (!game.max_plays || game.max_plays === 0) return true; // Unlimited
         const playCount = playCounts[game.id] || getPlayCount(game.id);
-        return playCount < game.maxPlays;
+        return playCount < game.max_plays;
     };
 
-    useEffect(() => {
-        // Get games assigned to student's classes
-        const enrollments = storage.enrollments.getAll().filter(e => e.studentId === user?.id);
-        const classIds = enrollments.map(e => e.classId);
-
-        const allGames = storage.assessments.getAll().filter(a =>
-            a.type === 'game' && (a.classIds?.some(cid => classIds.includes(cid)) || a.classIds?.length === 0)
+    // Filter games for student's classes
+    const games = useMemo(() => {
+        const classIds = enrollments.map(e => e.class_id);
+        return allAssessments.filter(a =>
+            a.type === 'game' && (classIds.includes(a.class_id) || !a.class_id)
         );
+    }, [enrollments, allAssessments]);
 
-        setGames(allGames);
-
-        // Load play counts
+    // Load play counts when games change
+    useEffect(() => {
         const counts = {};
-        allGames.forEach(game => {
+        games.forEach(game => {
             counts[game.id] = getPlayCount(game.id);
         });
         setPlayCounts(counts);
-    }, [user]);
+    }, [games, user]);
 
     if (selectedGame && gameState) {
         return (
@@ -65,7 +67,7 @@ function StudentGamesContent() {
                 state={gameState}
                 setState={setGameState}
                 onComplete={(score, xp) => {
-                    awardXP(xp, selectedGame.subjectId);
+                    awardXP(xp, selectedGame.subject_id);
                     setSelectedGame(null);
                     setGameState(null);
                 }}
@@ -74,6 +76,17 @@ function StudentGamesContent() {
                     setGameState(null);
                 }}
             />
+        );
+    }
+
+    if (isLoading) {
+        return (
+            <div className="p-4 flex items-center justify-center min-h-[50vh]">
+                <div className="text-center">
+                    <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                    <p className="text-text-muted">Loading games...</p>
+                </div>
+            </div>
         );
     }
 
@@ -93,7 +106,7 @@ function StudentGamesContent() {
                         const COLORS = ['bg-pink-400', 'bg-blue-400', 'bg-green-400', 'bg-purple-400', 'bg-yellow-400'];
                         const colorIndex = game.id?.charCodeAt(0) % COLORS.length || 0;
                         const playCount = playCounts[game.id] || 0;
-                        const hasLimit = game.maxPlays && game.maxPlays > 0;
+                        const hasLimit = game.max_plays && game.max_plays > 0;
                         const canPlay = canPlayGame(game);
 
                         return (
@@ -108,13 +121,13 @@ function StudentGamesContent() {
                                 disabled={!canPlay}
                                 className={`${canPlay ? COLORS[colorIndex] : 'bg-gray-300'} rounded-2xl p-4 h-32 flex flex-col justify-between text-left transition-transform ${canPlay ? 'active:scale-95' : 'cursor-not-allowed opacity-70'}`}
                             >
-                                <div className="text-3xl">{ICONS[game.gameType] || '🎮'}</div>
+                                <div className="text-3xl">{ICONS[game.game_type] || '🎮'}</div>
                                 <div>
                                     <h3 className="font-bold text-white text-sm">{game.title}</h3>
-                                    <p className="text-xs text-white/80 capitalize">{game.gameType?.replace('_', ' ')}</p>
+                                    <p className="text-xs text-white/80 capitalize">{game.game_type?.replace('_', ' ')}</p>
                                     {hasLimit && (
                                         <p className={`text-xs mt-1 ${canPlay ? 'text-white/80' : 'text-red-200'}`}>
-                                            {canPlay ? `${game.maxPlays - playCount} plays left` : 'No plays left'}
+                                            {canPlay ? `${game.max_plays - playCount} plays left` : 'No plays left'}
                                         </p>
                                     )}
                                 </div>

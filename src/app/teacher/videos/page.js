@@ -1,59 +1,63 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import storage from '@/lib/storage';
+import { useVideos, useClasses, useSubjects, createRecord, updateRecord, deleteRecord } from '@/hooks/useSupabaseData';
 
 export default function TeacherVideosPage() {
     const { user } = useAuth();
-    const [videos, setVideos] = useState([]);
-    const [classes, setClasses] = useState([]);
-    const [subjects, setSubjects] = useState([]);
+    const { data: allVideos, loading: videosLoading, refetch: refetchVideos } = useVideos();
+    const { data: allClasses, loading: classesLoading } = useClasses({ teacher_id: user?.id });
+    const { data: subjects, loading: subjectsLoading } = useSubjects();
+
     const [showForm, setShowForm] = useState(false);
     const [formData, setFormData] = useState({
         title: '',
         description: '',
         url: '',
-        subjectId: '',
-        classIds: [],
+        subject_id: '',
+        class_id: '',
         duration: '',
     });
     const [editingId, setEditingId] = useState(null);
+    const [saving, setSaving] = useState(false);
 
-    useEffect(() => {
-        loadData();
-    }, [user]);
+    const isLoading = videosLoading || classesLoading || subjectsLoading;
 
-    const loadData = () => {
-        const allVideos = storage.videos.getAll();
-        setVideos(allVideos.filter(v => v.createdBy === user?.id));
+    // Filter videos created by this teacher
+    const videos = useMemo(() => {
+        return allVideos.filter(v => v.created_by === user?.id);
+    }, [allVideos, user]);
 
-        const allClasses = storage.classes.getAll();
-        setClasses(allClasses.filter(c => c.teacherId === user?.id));
+    const classes = allClasses;
 
-        setSubjects(storage.subjects.getAll());
-    };
-
-    const handleSubmit = () => {
+    const handleSubmit = async () => {
         if (!formData.title || !formData.url) {
             alert('Please fill in title and video URL');
             return;
         }
 
-        const videoData = {
-            ...formData,
-            createdBy: user?.id,
-            type: getVideoType(formData.url),
-        };
+        setSaving(true);
+        try {
+            const videoData = {
+                ...formData,
+                created_by: user?.id,
+                type: getVideoType(formData.url),
+            };
 
-        if (editingId) {
-            storage.videos.update(editingId, videoData);
-        } else {
-            storage.videos.create(videoData);
+            if (editingId) {
+                await updateRecord('videos', editingId, videoData);
+            } else {
+                await createRecord('videos', videoData);
+            }
+
+            resetForm();
+            refetchVideos();
+        } catch (error) {
+            alert('Error saving: ' + error.message);
+        } finally {
+            setSaving(false);
         }
-
-        resetForm();
-        loadData();
     };
 
     const getVideoType = (url) => {
@@ -72,8 +76,8 @@ export default function TeacherVideosPage() {
             title: '',
             description: '',
             url: '',
-            subjectId: '',
-            classIds: [],
+            subject_id: '',
+            class_id: '',
             duration: '',
         });
         setEditingId(null);
@@ -85,18 +89,22 @@ export default function TeacherVideosPage() {
             title: video.title,
             description: video.description || '',
             url: video.url,
-            subjectId: video.subjectId || '',
-            classIds: video.classIds || [],
+            subject_id: video.subject_id || '',
+            class_id: video.class_id || '',
             duration: video.duration || '',
         });
         setEditingId(video.id);
         setShowForm(true);
     };
 
-    const handleDelete = (id) => {
+    const handleDelete = async (id) => {
         if (confirm('Are you sure you want to delete this video?')) {
-            storage.videos.delete(id);
-            loadData();
+            try {
+                await deleteRecord('videos', id);
+                refetchVideos();
+            } catch (error) {
+                alert('Error deleting: ' + error.message);
+            }
         }
     };
 
@@ -189,8 +197,8 @@ export default function TeacherVideosPage() {
                         <div>
                             <label className="block text-sm font-medium text-text-main mb-1">Subject</label>
                             <select
-                                value={formData.subjectId}
-                                onChange={(e) => setFormData({ ...formData, subjectId: e.target.value })}
+                                value={formData.subject_id}
+                                onChange={(e) => setFormData({ ...formData, subject_id: e.target.value })}
                                 className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary outline-none"
                             >
                                 <option value="">Select subject</option>
@@ -212,33 +220,25 @@ export default function TeacherVideosPage() {
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-text-main mb-2">Assign to Classes</label>
-                        <div className="flex flex-wrap gap-2">
+                        <label className="block text-sm font-medium text-text-main mb-2">Assign to Class</label>
+                        <select
+                            value={formData.class_id}
+                            onChange={(e) => setFormData({ ...formData, class_id: e.target.value })}
+                            className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary outline-none"
+                        >
+                            <option value="">Select a class</option>
                             {classes.map((cls) => (
-                                <button
-                                    key={cls.id}
-                                    onClick={() => {
-                                        const newIds = formData.classIds.includes(cls.id)
-                                            ? formData.classIds.filter(id => id !== cls.id)
-                                            : [...formData.classIds, cls.id];
-                                        setFormData({ ...formData, classIds: newIds });
-                                    }}
-                                    className={`px-3 py-1.5 rounded-full text-sm font-medium ${formData.classIds.includes(cls.id)
-                                            ? 'bg-primary text-white'
-                                            : 'bg-gray-100 text-text-muted'
-                                        }`}
-                                >
-                                    {cls.name}
-                                </button>
+                                <option key={cls.id} value={cls.id}>{cls.name}</option>
                             ))}
-                        </div>
+                        </select>
                     </div>
 
                     <button
                         onClick={handleSubmit}
-                        className="w-full py-3 bg-primary text-white font-bold rounded-xl"
+                        disabled={saving}
+                        className="w-full py-3 bg-primary text-white font-bold rounded-xl disabled:opacity-50"
                     >
-                        {editingId ? 'Update Video' : 'Add Video'}
+                        {saving ? 'Saving...' : (editingId ? 'Update Video' : 'Add Video')}
                     </button>
                 </div>
             )}
@@ -258,8 +258,8 @@ export default function TeacherVideosPage() {
                     </div>
                 ) : (
                     videos.map((video) => {
-                        const subject = subjects.find(s => s.id === video.subjectId);
-                        const assignedClasses = classes.filter(c => video.classIds?.includes(c.id));
+                        const subject = subjects.find(s => s.id === video.subject_id);
+                        const assignedClass = classes.find(c => c.id === video.class_id);
                         const ytId = getYouTubeId(video.url);
 
                         return (
@@ -311,13 +311,11 @@ export default function TeacherVideosPage() {
                                                 </button>
                                             </div>
                                         </div>
-                                        {assignedClasses.length > 0 && (
+                                        {assignedClass && (
                                             <div className="flex gap-1 mt-2">
-                                                {assignedClasses.map(c => (
-                                                    <span key={c.id} className="text-xs bg-gray-100 px-2 py-0.5 rounded text-text-muted">
-                                                        {c.name}
-                                                    </span>
-                                                ))}
+                                                <span className="text-xs bg-gray-100 px-2 py-0.5 rounded text-text-muted">
+                                                    {assignedClass.name}
+                                                </span>
                                             </div>
                                         )}
                                     </div>

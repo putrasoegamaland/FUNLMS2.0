@@ -1,33 +1,44 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import storage from '@/lib/storage';
+import { useBooks, useEnrollments } from '@/hooks/useSupabaseData';
 import AskAIModal from '@/components/AskAIModal';
 import { isGeminiConfigured } from '@/lib/geminiAI';
 
 export default function StudentBooksPage() {
     const { user } = useAuth();
-    const [books, setBooks] = useState([]);
+    const { data: allEnrollments, loading: enrollmentsLoading } = useEnrollments({ student_id: user?.id });
+    const { data: allBooks, loading: booksLoading } = useBooks();
+
     const [selectedBook, setSelectedBook] = useState(null);
     const [viewingPDF, setViewingPDF] = useState(false);
     const [showAskAI, setShowAskAI] = useState(false);
 
-    useEffect(() => {
-        // Get books assigned to student's classes
-        const enrollments = storage.enrollments.getAll().filter(e => e.studentId === user?.id);
-        const classIds = enrollments.map(e => e.classId);
+    const isLoading = enrollmentsLoading || booksLoading;
 
-        const allBooks = storage.books.getAll();
-        const available = allBooks.filter(b =>
-            b.classIds?.some(cid => classIds.includes(cid)) || b.classIds?.length === 0
+    // Filter books for enrolled classes
+    const books = useMemo(() => {
+        const classIds = allEnrollments.map(e => e.class_id);
+        return allBooks.filter(b =>
+            (b.class_id && classIds.includes(b.class_id)) || !b.class_id
         );
+    }, [allEnrollments, allBooks]);
 
-        setBooks(available);
-    }, [user]);
+    // Loading state
+    if (isLoading) {
+        return (
+            <div className="p-4 space-y-4">
+                <h2 className="text-lg font-bold text-text-main">📚 My Books</h2>
+                <div className="flex justify-center py-12">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                </div>
+            </div>
+        );
+    }
 
     // PDF Viewer
-    if (viewingPDF && selectedBook?.pdfData) {
+    if (viewingPDF && selectedBook?.pdf_data) {
         return (
             <div className="fixed inset-0 bg-black z-50 flex flex-col">
                 <header className="bg-gray-900 p-4 flex items-center gap-4">
@@ -38,7 +49,7 @@ export default function StudentBooksPage() {
                 </header>
                 <div className="flex-1 overflow-auto">
                     <iframe
-                        src={selectedBook.pdfData}
+                        src={selectedBook.pdf_data}
                         className="w-full h-full min-h-[80vh]"
                         title={selectedBook.title}
                     />
@@ -59,7 +70,7 @@ export default function StudentBooksPage() {
 
                 <div className="p-4 space-y-4">
                     <div className="bg-primary/10 rounded-2xl p-8 text-center">
-                        <div className="text-6xl mb-4">{selectedBook.coverEmoji || '📖'}</div>
+                        <div className="text-6xl mb-4">{selectedBook.cover_emoji || '📖'}</div>
                         <h3 className="text-xl font-bold text-text-main">{selectedBook.title}</h3>
                         {selectedBook.author && (
                             <p className="text-text-muted">by {selectedBook.author}</p>
@@ -73,7 +84,7 @@ export default function StudentBooksPage() {
                         </div>
                     )}
 
-                    {selectedBook.pdfData ? (
+                    {selectedBook.pdf_data ? (
                         <button
                             onClick={() => setViewingPDF(true)}
                             className="w-full py-4 bg-primary text-white font-bold rounded-xl flex items-center justify-center gap-2"
@@ -127,12 +138,12 @@ export default function StudentBooksPage() {
                             onClick={() => setSelectedBook(book)}
                             className={`${bookColors[i % bookColors.length]} rounded-2xl p-4 h-40 flex flex-col justify-between text-left active:scale-95 transition-transform relative`}
                         >
-                            {book.pdfData && (
+                            {book.pdf_data && (
                                 <div className="absolute top-2 right-2 bg-white/30 px-2 py-0.5 rounded text-xs text-white font-medium">
                                     PDF
                                 </div>
                             )}
-                            <div className="text-4xl">{book.coverEmoji || '📖'}</div>
+                            <div className="text-4xl">{book.cover_emoji || '📖'}</div>
                             <div>
                                 <h3 className="font-bold text-white text-sm leading-tight">{book.title}</h3>
                                 {book.author && (

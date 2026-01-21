@@ -1,48 +1,42 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useGame } from '@/contexts/GameContext';
-import storage from '@/lib/storage';
+import { useEnrollments, useAssignments, useSubmissions, createRecord } from '@/hooks/useSupabaseData';
 import { processImage } from '@/lib/fileUtils';
 
 export default function StudentAssignmentsPage() {
     const { user } = useAuth();
     const { awardXP } = useGame();
-    const [assignments, setAssignments] = useState([]);
+    const { data: enrollments, loading: enrollmentsLoading } = useEnrollments({ student_id: user?.id });
+    const { data: allAssignments, loading: assignmentsLoading } = useAssignments();
+    const { data: allSubmissions, loading: submissionsLoading, refetch: refetchSubmissions } = useSubmissions({ student_id: user?.id });
+
     const [selectedAssignment, setSelectedAssignment] = useState(null);
     const [uploadedFiles, setUploadedFiles] = useState([]);
     const [note, setNote] = useState('');
     const [uploading, setUploading] = useState(false);
+    const [submitting, setSubmitting] = useState(false);
     const fileInputRef = useRef(null);
 
-    useEffect(() => {
-        if (!user?.id) return;
+    const isLoading = enrollmentsLoading || assignmentsLoading || submissionsLoading;
 
-        // Get student's enrolled classes
-        const enrollments = storage.enrollments.getAll().filter(e => e.studentId === user.id);
-        const classIds = enrollments.map(e => e.classId);
+    // Get student's class IDs and filter assignments
+    const assignments = useMemo(() => {
+        const classIds = enrollments.map(e => e.class_id);
+        const myAssignments = allAssignments.filter(a => classIds.includes(a.class_id));
 
-        // Get assignments for student's classes
-        const allAssignments = storage.assignments.getAll();
-        const myAssignments = allAssignments.filter(a =>
-            a.classIds?.some(cid => classIds.includes(cid))
-        );
-
-        // Enrich with submission status
-        const enriched = myAssignments.map(a => {
-            const submission = storage.submissions.getAll()
-                .find(s => s.assignmentId === a.id && s.studentId === user.id);
+        return myAssignments.map(a => {
+            const submission = allSubmissions.find(s => s.assignment_id === a.id);
             return {
                 ...a,
                 submission,
                 isSubmitted: !!submission,
-                isGraded: submission?.score !== undefined,
+                isGraded: submission?.grade !== undefined && submission?.grade !== null,
             };
         });
-
-        setAssignments(enriched);
-    }, [user]);
+    }, [enrollments, allAssignments, allSubmissions]);
 
     const handleFileUpload = async (e) => {
         const files = Array.from(e.target.files);
@@ -61,7 +55,6 @@ export default function StudentAssignmentsPage() {
                     }]);
                 }
             } else if (file.type === 'application/pdf') {
-                // Read PDF as base64
                 const reader = new FileReader();
                 reader.onload = () => {
                     setUploadedFiles(prev => [...prev, {
@@ -77,41 +70,58 @@ export default function StudentAssignmentsPage() {
         setUploading(false);
     };
 
-    const handleSubmit = () => {
+    const handleSubmit = async () => {
         if (uploadedFiles.length === 0) {
             alert('Please upload at least one file');
             return;
         }
 
-        storage.submissions.create({
-            assignmentId: selectedAssignment.id,
-            studentId: user.id,
-            files: uploadedFiles,
-            note,
-            submittedAt: new Date().toISOString(),
-        });
+        setSubmitting(true);
+        try {
+            await createRecord('submissions', {
+                assignment_id: selectedAssignment.id,
+                student_id: user.id,
+                file_name: uploadedFiles[0]?.name,
+                file_type: uploadedFiles[0]?.type,
+                file_data: uploadedFiles[0]?.data,
+                note,
+                submitted_at: new Date().toISOString(),
+            });
 
-        // Award XP for submitting
-        awardXP(10);
+            // Award XP for submitting
+            await awardXP(10);
 
-        setSelectedAssignment(null);
-        setUploadedFiles([]);
-        setNote('');
-
-        // Refresh assignments
-        window.location.reload();
+            setSelectedAssignment(null);
+            setUploadedFiles([]);
+            setNote('');
+            refetchSubmissions();
+        } catch (error) {
+            alert('Error submitting: ' + error.message);
+        } finally {
+            setSubmitting(false);
+        }
     };
 
     const removeFile = (index) => {
         setUploadedFiles(prev => prev.filter((_, i) => i !== index));
     };
 
+    if (isLoading) {
+        return (
+            <div className="p-4 flex items-center justify-center min-h-[50vh]">
+                <div className="text-center">
+                    <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                    <p className="text-text-muted">Loading assignments...</p>
+                </div>
+            </div>
+        );
+    }
+
     // Assignment submission view
     if (selectedAssignment) {
-        const isOverdue = selectedAssignment.dueDate && new Date(selectedAssignment.dueDate) < new Date();
+        const isOverdue = selectedAssignment.due_date && new Date(selectedAssignment.due_date) < new Date();
 
         if (selectedAssignment.isSubmitted) {
-            // Show submission status
             const sub = selectedAssignment.submission;
             return (
                 <div className="p-4 space-y-4">
@@ -125,17 +135,16 @@ export default function StudentAssignmentsPage() {
                     <div className="bg-card-light rounded-xl p-4 border border-gray-100">
                         <h3 className="font-bold text-text-main mb-2">{selectedAssignment.title}</h3>
                         <p className="text-sm text-text-muted">
-                            Submitted: {new Date(sub.submittedAt).toLocaleString()}
+                            Submitted: {new Date(sub.submitted_at).toLocaleString()}
                         </p>
                     </div>
 
                     {/* Grade Display */}
-                    <div className={`rounded-xl p-6 text-center ${sub.score !== undefined ? 'bg-green-100' : 'bg-yellow-100'
-                        }`}>
-                        {sub.score !== undefined ? (
+                    <div className={`rounded-xl p-6 text-center ${sub.grade !== undefined && sub.grade !== null ? 'bg-green-100' : 'bg-yellow-100'}`}>
+                        {sub.grade !== undefined && sub.grade !== null ? (
                             <>
-                                <p className="text-4xl font-bold text-green-600">{sub.score}</p>
-                                <p className="text-green-700">/{selectedAssignment.maxScore || 100}</p>
+                                <p className="text-4xl font-bold text-green-600">{sub.grade}</p>
+                                <p className="text-green-700">/{selectedAssignment.max_score || 100}</p>
                                 {sub.feedback && (
                                     <div className="mt-4 p-3 bg-white rounded-lg text-left">
                                         <p className="text-sm font-medium text-text-main">Teacher's feedback:</p>
@@ -154,18 +163,18 @@ export default function StudentAssignmentsPage() {
                     {/* Submitted Files */}
                     <div className="bg-card-light rounded-xl p-4 border border-gray-100">
                         <h4 className="font-bold text-text-main mb-3">📎 Your Files</h4>
-                        {sub.files?.map((file, i) => (
-                            <div key={i} className="mb-2">
-                                {file.type?.startsWith('image') ? (
-                                    <img src={file.data} alt={file.name} className="max-w-full rounded-lg" />
+                        {sub.file_name && (
+                            <div className="mb-2">
+                                {sub.file_type?.startsWith('image') ? (
+                                    <img src={sub.file_data} alt={sub.file_name} className="max-w-full rounded-lg" />
                                 ) : (
                                     <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
                                         <span className="material-symbols-outlined text-red-500">picture_as_pdf</span>
-                                        <span className="text-sm">{file.name}</span>
+                                        <span className="text-sm">{sub.file_name}</span>
                                     </div>
                                 )}
                             </div>
-                        ))}
+                        )}
                     </div>
                 </div>
             );
@@ -186,9 +195,9 @@ export default function StudentAssignmentsPage() {
                     {selectedAssignment.description && (
                         <p className="text-sm text-text-muted mb-2">{selectedAssignment.description}</p>
                     )}
-                    {selectedAssignment.dueDate && (
+                    {selectedAssignment.due_date && (
                         <p className={`text-sm ${isOverdue ? 'text-red-500' : 'text-text-muted'}`}>
-                            Due: {new Date(selectedAssignment.dueDate).toLocaleString()}
+                            Due: {new Date(selectedAssignment.due_date).toLocaleString()}
                             {isOverdue && ' (Overdue!)'}
                         </p>
                     )}
@@ -256,10 +265,10 @@ export default function StudentAssignmentsPage() {
                 {/* Submit */}
                 <button
                     onClick={handleSubmit}
-                    disabled={uploadedFiles.length === 0}
+                    disabled={uploadedFiles.length === 0 || submitting}
                     className="w-full py-3 bg-primary text-white font-bold rounded-xl disabled:opacity-50"
                 >
-                    Submit Assignment (+10 XP)
+                    {submitting ? 'Submitting...' : 'Submit Assignment (+10 XP)'}
                 </button>
             </div>
         );
@@ -297,7 +306,7 @@ export default function StudentAssignmentsPage() {
             {assignments.length > 0 ? (
                 <div className="space-y-3">
                     {assignments.map((assignment) => {
-                        const isOverdue = assignment.dueDate && new Date(assignment.dueDate) < new Date();
+                        const isOverdue = assignment.due_date && new Date(assignment.due_date) < new Date();
 
                         return (
                             <button
@@ -306,8 +315,8 @@ export default function StudentAssignmentsPage() {
                                 className="w-full flex items-center gap-4 p-4 rounded-xl bg-card-light border border-gray-100 text-left hover:border-primary"
                             >
                                 <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl ${assignment.isGraded ? 'bg-green-100' :
-                                        assignment.isSubmitted ? 'bg-yellow-100' :
-                                            'bg-purple-100'
+                                    assignment.isSubmitted ? 'bg-yellow-100' :
+                                        'bg-purple-100'
                                     }`}>
                                     {assignment.isGraded ? '✅' : assignment.isSubmitted ? '⏳' : '📋'}
                                 </div>
@@ -316,7 +325,7 @@ export default function StudentAssignmentsPage() {
                                     <div className="flex items-center gap-2 mt-1">
                                         {assignment.isGraded ? (
                                             <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">
-                                                Score: {assignment.submission?.score}/{assignment.maxScore || 100}
+                                                Score: {assignment.submission?.grade}/{assignment.max_score || 100}
                                             </span>
                                         ) : assignment.isSubmitted ? (
                                             <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded">

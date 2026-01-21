@@ -1,40 +1,30 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useGame } from '@/contexts/GameContext';
-import storage from '@/lib/storage';
+import { useVideos, useEnrollments, useSubjects, createRecord, updateRecord } from '@/hooks/useSupabaseData';
 
 export default function StudentVideosPage() {
     const { user } = useAuth();
     const { awardXP } = useGame();
-    const [videos, setVideos] = useState([]);
+    const { data: allVideos, loading: videosLoading } = useVideos();
+    const { data: allEnrollments, loading: enrollmentsLoading } = useEnrollments({ student_id: user?.id });
+    const { data: subjects, loading: subjectsLoading } = useSubjects();
+
     const [selectedVideo, setSelectedVideo] = useState(null);
     const [watchProgress, setWatchProgress] = useState({});
     const videoRef = useRef(null);
 
-    useEffect(() => {
-        if (!user?.id) return;
+    const isLoading = videosLoading || enrollmentsLoading || subjectsLoading;
 
-        // Get student's enrolled classes
-        const enrollments = storage.enrollments.getAll().filter(e => e.studentId === user.id);
-        const classIds = enrollments.map(e => e.classId);
-
-        // Get videos assigned to student's classes
-        const allVideos = storage.videos.getAll();
-        const myVideos = allVideos.filter(v =>
-            v.classIds?.some(cid => classIds.includes(cid))
+    // Filter videos for enrolled classes
+    const videos = useMemo(() => {
+        const classIds = allEnrollments.map(e => e.class_id);
+        return allVideos.filter(v =>
+            (v.class_id && classIds.includes(v.class_id)) || !v.class_id
         );
-
-        setVideos(myVideos);
-
-        // Load watch progress
-        const progress = {};
-        myVideos.forEach(v => {
-            progress[v.id] = storage.videoProgress.get(user.id, v.id) || {};
-        });
-        setWatchProgress(progress);
-    }, [user]);
+    }, [allEnrollments, allVideos]);
 
     const getYouTubeId = (url) => {
         if (!url) return null;
@@ -46,14 +36,11 @@ export default function StudentVideosPage() {
         setSelectedVideo(video);
     };
 
-    const handleVideoComplete = (videoId) => {
+    const handleVideoComplete = async (videoId) => {
         if (!user?.id || watchProgress[videoId]?.completed) return;
 
-        // Mark as complete
-        storage.videoProgress.markComplete(user.id, videoId);
-
         // Award XP
-        awardXP(15, selectedVideo?.subjectId);
+        awardXP(15, selectedVideo?.subject_id);
 
         // Update local state
         setWatchProgress(prev => ({
@@ -62,12 +49,11 @@ export default function StudentVideosPage() {
         }));
     };
 
-    const subjects = storage.subjects.getAll();
     const getSubject = (subjectId) => subjects.find(s => s.id === subjectId);
 
     if (selectedVideo) {
         const ytId = getYouTubeId(selectedVideo.url);
-        const subject = getSubject(selectedVideo.subjectId);
+        const subject = getSubject(selectedVideo.subject_id);
         const isCompleted = watchProgress[selectedVideo.id]?.completed;
 
         return (
@@ -174,7 +160,7 @@ export default function StudentVideosPage() {
                 <div className="space-y-3">
                     {videos.map((video) => {
                         const ytId = getYouTubeId(video.url);
-                        const subject = getSubject(video.subjectId);
+                        const subject = getSubject(video.subject_id);
                         const isCompleted = watchProgress[video.id]?.completed;
 
                         return (

@@ -1,25 +1,30 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useGame } from '@/contexts/GameContext';
-import storage from '@/lib/storage';
+import { useUsers, useAttempts } from '@/hooks/useSupabaseData';
 
 export default function StudentQuestsPage() {
     const { user } = useAuth();
     const { xp, streak, level } = useGame();
-    const [leaderboard, setLeaderboard] = useState([]);
+    const { data: allUsers, loading: usersLoading } = useUsers({ role: 'student' });
+    const { data: allAttempts, loading: attemptsLoading } = useAttempts();
 
-    useEffect(() => {
-        // Get all students and their XP for leaderboard
-        const students = storage.users.getAll().filter(u => u.role === 'student');
-        const ranked = students.map(s => ({
-            ...s,
-            progress: storage.progress.get(s.id),
-        })).sort((a, b) => (b.progress?.totalXp || 0) - (a.progress?.totalXp || 0));
+    const isLoading = usersLoading || attemptsLoading;
 
-        setLeaderboard(ranked);
-    }, []);
+    // Calculate leaderboard from attempts
+    const leaderboard = useMemo(() => {
+        return allUsers.map(student => {
+            const studentAttempts = allAttempts.filter(a => a.student_id === student.id);
+            const totalXp = studentAttempts.reduce((sum, a) => sum + (a.xp_earned || 0), 0);
+            const level = Math.floor(totalXp / 100) + 1;
+            return {
+                ...student,
+                progress: { totalXp, level },
+            };
+        }).sort((a, b) => (b.progress?.totalXp || 0) - (a.progress?.totalXp || 0));
+    }, [allUsers, allAttempts]);
 
     const userRank = leaderboard.findIndex(s => s.id === user?.id) + 1;
 

@@ -2,67 +2,57 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import storage from '@/lib/storage';
+import { useAssignments, useClasses, useSubmissions, useUsers, createRecord, updateRecord, deleteRecord } from '@/hooks/useSupabaseData';
+import { supabase } from '@/lib/supabase';
 
 export default function TeacherAssignmentsPage() {
     const { user } = useAuth();
-    const [assignments, setAssignments] = useState([]);
-    const [classes, setClasses] = useState([]);
+    const { data: allAssignments, loading: assignmentsLoading, refetch: refetchAssignments } = useAssignments();
+    const { data: allClasses, loading: classesLoading } = useClasses({ teacher_id: user?.id });
+    const { data: allSubmissions, loading: submissionsLoading, refetch: refetchSubmissions } = useSubmissions();
+
     const [showForm, setShowForm] = useState(false);
     const [selectedAssignment, setSelectedAssignment] = useState(null);
     const [formData, setFormData] = useState({
         title: '',
         description: '',
-        dueDate: '',
-        classIds: [],
-        maxScore: 100,
+        due_date: '',
+        class_id: '',
+        max_score: 100,
     });
 
-    useEffect(() => {
-        loadData();
-    }, [user]);
+    const isLoading = assignmentsLoading || classesLoading || submissionsLoading;
 
-    const loadData = () => {
-        const allAssignments = storage.assignments.getAll();
-        setAssignments(allAssignments.filter(a => a.createdBy === user?.id));
+    // Filter assignments created by this teacher (via class ownership)
+    const classIds = allClasses.map(c => c.id);
+    const assignments = allAssignments.filter(a => classIds.includes(a.class_id));
 
-        const allClasses = storage.classes.getAll();
-        setClasses(allClasses.filter(c => c.teacherId === user?.id));
-    };
-
-    const handleSubmit = () => {
+    const handleSubmit = async () => {
         if (!formData.title) {
             alert('Please enter a title');
             return;
         }
 
-        storage.assignments.create({
-            ...formData,
-            createdBy: user?.id,
-        });
-
-        setFormData({
-            title: '',
-            description: '',
-            dueDate: '',
-            classIds: [],
-            maxScore: 100,
-        });
-        setShowForm(false);
-        loadData();
+        try {
+            await createRecord('assignments', formData);
+            setFormData({ title: '', description: '', due_date: '', class_id: '', max_score: 100 });
+            setShowForm(false);
+            refetchAssignments();
+        } catch (error) {
+            alert('Error creating assignment: ' + error.message);
+        }
     };
 
-    const handleDelete = (id) => {
+    const handleDelete = async (id) => {
         if (confirm('Delete this assignment?')) {
-            storage.assignments.delete(id);
-            loadData();
+            await deleteRecord('assignments', id);
+            refetchAssignments();
         }
     };
 
     // View submissions for an assignment
     if (selectedAssignment) {
-        const submissions = storage.submissions.getAll()
-            .filter(s => s.assignmentId === selectedAssignment.id);
+        const submissions = allSubmissions.filter(s => s.assignment_id === selectedAssignment.id);
 
         return (
             <AssignmentSubmissions
@@ -70,10 +60,22 @@ export default function TeacherAssignmentsPage() {
                 submissions={submissions}
                 onBack={() => {
                     setSelectedAssignment(null);
-                    loadData();
+                    refetchSubmissions();
                 }}
                 userId={user?.id}
+                refetch={refetchSubmissions}
             />
+        );
+    }
+
+    if (isLoading) {
+        return (
+            <div className="p-4 flex items-center justify-center min-h-[50vh]">
+                <div className="text-center">
+                    <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                    <p className="text-text-muted">Loading assignments...</p>
+                </div>
+            </div>
         );
     }
 
@@ -124,8 +126,8 @@ export default function TeacherAssignmentsPage() {
                             <label className="block text-sm font-medium text-text-main mb-1">Due Date</label>
                             <input
                                 type="datetime-local"
-                                value={formData.dueDate}
-                                onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
+                                value={formData.due_date}
+                                onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
                                 className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none"
                             />
                         </div>
@@ -133,34 +135,27 @@ export default function TeacherAssignmentsPage() {
                             <label className="block text-sm font-medium text-text-main mb-1">Max Score</label>
                             <input
                                 type="number"
-                                value={formData.maxScore}
-                                onChange={(e) => setFormData({ ...formData, maxScore: parseInt(e.target.value) })}
+                                value={formData.max_score}
+                                onChange={(e) => setFormData({ ...formData, max_score: parseInt(e.target.value) })}
                                 className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none"
                             />
                         </div>
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-text-main mb-2">Assign to Classes</label>
-                        <div className="flex flex-wrap gap-2">
-                            {classes.map((cls) => (
-                                <button
-                                    key={cls.id}
-                                    onClick={() => {
-                                        const newIds = formData.classIds.includes(cls.id)
-                                            ? formData.classIds.filter(id => id !== cls.id)
-                                            : [...formData.classIds, cls.id];
-                                        setFormData({ ...formData, classIds: newIds });
-                                    }}
-                                    className={`px-3 py-1.5 rounded-full text-sm font-medium ${formData.classIds.includes(cls.id)
-                                            ? 'bg-primary text-white'
-                                            : 'bg-gray-100 text-text-muted'
-                                        }`}
-                                >
-                                    {cls.name}
-                                </button>
+                        <label className="block text-sm font-medium text-text-main mb-2">Assign to Class</label>
+                        <select
+                            value={formData.class_id}
+                            onChange={(e) => setFormData({ ...formData, class_id: e.target.value })}
+                            className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none"
+                        >
+                            <option value="">Select a class...</option>
+                            {allClasses.map((cls) => (
+                                <option key={cls.id} value={cls.id}>
+                                    {cls.emoji} {cls.name}
+                                </option>
                             ))}
-                        </div>
+                        </select>
                     </div>
 
                     <button
@@ -176,10 +171,9 @@ export default function TeacherAssignmentsPage() {
             {assignments.length > 0 ? (
                 <div className="space-y-3">
                     {assignments.map((assignment) => {
-                        const submissions = storage.submissions.getAll()
-                            .filter(s => s.assignmentId === assignment.id);
-                        const gradedCount = submissions.filter(s => s.score !== undefined).length;
-                        const isOverdue = assignment.dueDate && new Date(assignment.dueDate) < new Date();
+                        const submissions = allSubmissions.filter(s => s.assignment_id === assignment.id);
+                        const gradedCount = submissions.filter(s => s.grade !== undefined && s.grade !== null).length;
+                        const isOverdue = assignment.due_date && new Date(assignment.due_date) < new Date();
 
                         return (
                             <div
@@ -196,7 +190,7 @@ export default function TeacherAssignmentsPage() {
                                             <span className="text-xs text-text-muted">
                                                 {submissions.length} submissions
                                             </span>
-                                            {gradedCount < submissions.length && (
+                                            {gradedCount < submissions.length && submissions.length > 0 && (
                                                 <span className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded">
                                                     {submissions.length - gradedCount} to grade
                                                 </span>
@@ -250,28 +244,37 @@ export default function TeacherAssignmentsPage() {
 }
 
 // Assignment Submissions View with Grading
-function AssignmentSubmissions({ assignment, submissions, onBack, userId }) {
+function AssignmentSubmissions({ assignment, submissions, onBack, userId, refetch }) {
+    const { data: users } = useUsers({ role: 'student' });
     const [selectedSubmission, setSelectedSubmission] = useState(null);
     const [score, setScore] = useState('');
     const [feedback, setFeedback] = useState('');
+    const [saving, setSaving] = useState(false);
 
-    const handleGrade = () => {
+    const handleGrade = async () => {
         if (score === '') return;
+        setSaving(true);
 
-        storage.submissions.update(selectedSubmission.id, {
-            score: parseInt(score),
-            feedback,
-            gradedAt: new Date().toISOString(),
-            gradedBy: userId,
-        });
+        try {
+            await updateRecord('submissions', selectedSubmission.id, {
+                grade: parseInt(score),
+                feedback,
+                graded_at: new Date().toISOString(),
+            });
 
-        setSelectedSubmission(null);
-        setScore('');
-        setFeedback('');
+            setSelectedSubmission(null);
+            setScore('');
+            setFeedback('');
+            refetch();
+        } catch (error) {
+            alert('Error saving grade: ' + error.message);
+        } finally {
+            setSaving(false);
+        }
     };
 
     if (selectedSubmission) {
-        const student = storage.users.getById(selectedSubmission.studentId);
+        const student = users.find(u => u.id === selectedSubmission.student_id);
 
         return (
             <div className="p-4 space-y-4">
@@ -281,39 +284,33 @@ function AssignmentSubmissions({ assignment, submissions, onBack, userId }) {
                     </button>
                     <div>
                         <h2 className="text-lg font-bold text-text-main">Grade Submission</h2>
-                        <p className="text-sm text-text-muted">{student?.name}</p>
+                        <p className="text-sm text-text-muted">{student?.name || 'Unknown'}</p>
                     </div>
                 </div>
 
                 {/* Uploaded Files */}
                 <div className="bg-card-light rounded-xl p-4 border border-gray-100">
                     <h4 className="font-bold text-text-main mb-3">📎 Uploaded Files</h4>
-                    {selectedSubmission.files?.map((file, i) => (
-                        <div key={i} className="mb-3">
-                            {file.type?.startsWith('image') || file.data?.startsWith('data:image') ? (
-                                <img
-                                    src={file.data}
-                                    alt={file.name}
-                                    className="max-w-full rounded-lg border"
-                                />
-                            ) : (
-                                <a
-                                    href={file.data}
-                                    download={file.name}
-                                    className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg hover:bg-gray-100"
-                                >
-                                    <span className="material-symbols-outlined text-red-500">picture_as_pdf</span>
-                                    <span className="text-text-main">{file.name}</span>
-                                    <span className="material-symbols-outlined ml-auto text-text-muted">download</span>
-                                </a>
-                            )}
-                        </div>
-                    ))}
-                    {selectedSubmission.note && (
-                        <div className="mt-3 p-3 bg-gray-50 rounded-lg">
-                            <p className="text-sm text-text-muted">Student's note:</p>
-                            <p className="text-text-main">{selectedSubmission.note}</p>
-                        </div>
+                    {selectedSubmission.file_name ? (
+                        selectedSubmission.file_type?.startsWith('image') ? (
+                            <img
+                                src={selectedSubmission.file_data}
+                                alt={selectedSubmission.file_name}
+                                className="max-w-full rounded-lg border"
+                            />
+                        ) : (
+                            <a
+                                href={selectedSubmission.file_data}
+                                download={selectedSubmission.file_name}
+                                className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg hover:bg-gray-100"
+                            >
+                                <span className="material-symbols-outlined text-red-500">picture_as_pdf</span>
+                                <span className="text-text-main">{selectedSubmission.file_name}</span>
+                                <span className="material-symbols-outlined ml-auto text-text-muted">download</span>
+                            </a>
+                        )
+                    ) : (
+                        <p className="text-text-muted">No file uploaded</p>
                     )}
                 </div>
 
@@ -322,12 +319,12 @@ function AssignmentSubmissions({ assignment, submissions, onBack, userId }) {
                     <h4 className="font-bold text-text-main">✏️ Grade</h4>
                     <div>
                         <label className="block text-sm font-medium text-text-main mb-1">
-                            Score (0-{assignment.maxScore || 100})
+                            Score (0-{assignment.max_score || 100})
                         </label>
                         <input
                             type="number"
                             min="0"
-                            max={assignment.maxScore || 100}
+                            max={assignment.max_score || 100}
                             value={score}
                             onChange={(e) => setScore(e.target.value)}
                             className="w-full px-4 py-3 rounded-xl border border-gray-200 text-2xl font-bold text-center"
@@ -345,10 +342,10 @@ function AssignmentSubmissions({ assignment, submissions, onBack, userId }) {
                     </div>
                     <button
                         onClick={handleGrade}
-                        disabled={score === ''}
+                        disabled={score === '' || saving}
                         className="w-full py-3 bg-primary text-white font-bold rounded-xl disabled:opacity-50"
                     >
-                        Save Grade
+                        {saving ? 'Saving...' : 'Save Grade'}
                     </button>
                 </div>
             </div>
@@ -376,21 +373,21 @@ function AssignmentSubmissions({ assignment, submissions, onBack, userId }) {
             {submissions.length > 0 ? (
                 <div className="space-y-3">
                     {submissions.map((sub) => {
-                        const student = storage.users.getById(sub.studentId);
+                        const student = users.find(u => u.id === sub.student_id);
                         return (
                             <button
                                 key={sub.id}
                                 onClick={() => setSelectedSubmission(sub)}
                                 className="w-full flex items-center gap-4 p-4 rounded-xl bg-card-light border border-gray-100 text-left hover:border-primary"
                             >
-                                <div className={`w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold ${sub.score !== undefined ? 'bg-green-100 text-green-600' : 'bg-orange-100 text-orange-600'
+                                <div className={`w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold ${sub.grade !== undefined && sub.grade !== null ? 'bg-green-100 text-green-600' : 'bg-orange-100 text-orange-600'
                                     }`}>
-                                    {sub.score !== undefined ? sub.score : '?'}
+                                    {sub.grade !== undefined && sub.grade !== null ? sub.grade : '?'}
                                 </div>
                                 <div className="flex-1">
-                                    <p className="font-bold text-text-main">{student?.name}</p>
+                                    <p className="font-bold text-text-main">{student?.name || 'Unknown'}</p>
                                     <p className="text-sm text-text-muted">
-                                        Submitted: {new Date(sub.submittedAt).toLocaleString()}
+                                        Submitted: {new Date(sub.submitted_at).toLocaleString()}
                                     </p>
                                 </div>
                                 <span className="material-symbols-outlined text-text-muted">chevron_right</span>

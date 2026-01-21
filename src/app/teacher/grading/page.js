@@ -1,81 +1,85 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import storage from '@/lib/storage';
+import { useAttempts, useSubmissions, useAssessments, useAssignments, useUsers, useClasses, updateRecord } from '@/hooks/useSupabaseData';
 
 export default function TeacherGradingPage() {
     const { user } = useAuth();
-    const [pendingSubmissions, setPendingSubmissions] = useState([]);
+    const { data: attempts, loading: attemptsLoading, refetch: refetchAttempts } = useAttempts();
+    const { data: submissions, loading: submissionsLoading, refetch: refetchSubmissions } = useSubmissions();
+    const { data: assessments, loading: assessmentsLoading } = useAssessments();
+    const { data: assignments, loading: assignmentsLoading } = useAssignments();
+    const { data: users, loading: usersLoading } = useUsers();
+    const { data: classes, loading: classesLoading } = useClasses({ teacher_id: user?.id });
+
     const [selectedSubmission, setSelectedSubmission] = useState(null);
     const [score, setScore] = useState('');
     const [feedback, setFeedback] = useState('');
-    const [filter, setFilter] = useState('pending'); // pending, graded, all
+    const [filter, setFilter] = useState('pending');
+    const [saving, setSaving] = useState(false);
 
-    useEffect(() => {
-        loadSubmissions();
-    }, [user, filter]);
+    const isLoading = attemptsLoading || submissionsLoading || assessmentsLoading || assignmentsLoading || usersLoading || classesLoading;
 
-    const loadSubmissions = () => {
-        // Get all essay/written exam attempts that need grading
-        const allAttempts = storage.attempts?.getAll?.() || [];
-        const teacherAssessments = storage.assessments.getAll()
-            .filter(a => a.createdBy === user?.id && (a.type === 'essay' || a.type === 'written_exam'));
+    // Get class IDs owned by this teacher
+    const classIds = useMemo(() => classes.map(c => c.id), [classes]);
 
-        const assessmentIds = teacherAssessments.map(a => a.id);
-
-        let attemptItems = allAttempts.filter(attempt =>
-            assessmentIds.includes(attempt.assessmentId)
-        );
-
-        // Also get assignment submissions
-        const allSubmissions = storage.submissions?.getAll?.() || [];
-        const teacherAssignments = storage.assignments?.getAll?.().filter(a => a.createdBy === user?.id) || [];
+    // Combine and filter submissions for grading
+    const pendingSubmissions = useMemo(() => {
+        // Assignment submissions for teacher's classes
+        const teacherAssignments = assignments.filter(a => classIds.includes(a.class_id));
         const assignmentIds = teacherAssignments.map(a => a.id);
 
-        let assignmentSubmissions = allSubmissions.filter(sub =>
-            assignmentIds.includes(sub.assignmentId)
-        ).map(sub => ({
-            ...sub,
-            isAssignment: true,
-            completedAt: sub.submittedAt || sub.createdAt,
-        }));
-
-        // Combine both types
-        let allItems = [...attemptItems, ...assignmentSubmissions];
-
-        if (filter === 'pending') {
-            allItems = allItems.filter(a => !a.teacherScore && a.teacherScore !== 0);
-        } else if (filter === 'graded') {
-            allItems = allItems.filter(a => a.teacherScore !== undefined);
-        }
-
-        // Enrich with student and assessment/assignment info
-        const enriched = allItems.map(item => {
-            const student = storage.users.getById(item.studentId);
-            if (item.isAssignment) {
-                const assignment = storage.assignments.getById(item.assignmentId);
+        let assignmentSubmissions = submissions
+            .filter(sub => assignmentIds.includes(sub.assignment_id))
+            .map(sub => {
+                const assignment = assignments.find(a => a.id === sub.assignment_id);
+                const student = users.find(u => u.id === sub.student_id);
                 return {
-                    ...item,
+                    ...sub,
+                    isAssignment: true,
+                    completedAt: sub.submitted_at || sub.created_at,
                     studentName: student?.name || 'Unknown',
                     assessmentTitle: assignment?.title || 'Unknown Assignment',
                     assessmentType: 'assignment',
+                    teacherScore: sub.grade,
                 };
-            } else {
-                const assessment = storage.assessments.getById(item.assessmentId);
+            });
+
+        // Essay/written exam attempts for teacher's assessments
+        const teacherAssessments = assessments.filter(a =>
+            classIds.includes(a.class_id) && (a.type === 'essay' || a.type === 'written_exam')
+        );
+        const assessmentIds = teacherAssessments.map(a => a.id);
+
+        let attemptItems = attempts
+            .filter(attempt => assessmentIds.includes(attempt.assessment_id))
+            .map(attempt => {
+                const assessment = assessments.find(a => a.id === attempt.assessment_id);
+                const student = users.find(u => u.id === attempt.user_id);
                 return {
-                    ...item,
+                    ...attempt,
+                    isAssignment: false,
+                    completedAt: attempt.completed_at || attempt.created_at,
                     studentName: student?.name || 'Unknown',
                     assessmentTitle: assessment?.title || 'Unknown Quiz',
                     assessmentType: assessment?.type,
+                    teacherScore: attempt.teacher_score,
                 };
-            }
-        });
+            });
 
-        setPendingSubmissions(enriched);
-    };
+        let allItems = [...attemptItems, ...assignmentSubmissions];
 
-    const handleGrade = () => {
+        if (filter === 'pending') {
+            allItems = allItems.filter(a => a.teacherScore === undefined || a.teacherScore === null);
+        } else if (filter === 'graded') {
+            allItems = allItems.filter(a => a.teacherScore !== undefined && a.teacherScore !== null);
+        }
+
+        return allItems.sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt));
+    }, [submissions, attempts, assignments, assessments, users, classIds, filter]);
+
+    const handleGrade = async () => {
         if (!selectedSubmission || score === '') return;
 
         const numScore = parseInt(score);
@@ -84,26 +88,44 @@ export default function TeacherGradingPage() {
             return;
         }
 
-        const gradeData = {
-            teacherScore: numScore,
-            teacherFeedback: feedback,
-            gradedAt: new Date().toISOString(),
-            gradedBy: user?.id,
-            score: numScore,
-        };
+        setSaving(true);
+        try {
+            if (selectedSubmission.isAssignment) {
+                await updateRecord('submissions', selectedSubmission.id, {
+                    grade: numScore,
+                    feedback,
+                    graded_at: new Date().toISOString(),
+                });
+                refetchSubmissions();
+            } else {
+                await updateRecord('attempts', selectedSubmission.id, {
+                    teacher_score: numScore,
+                    teacher_feedback: feedback,
+                    graded_at: new Date().toISOString(),
+                });
+                refetchAttempts();
+            }
 
-        // Use appropriate storage based on item type
-        if (selectedSubmission.isAssignment) {
-            storage.submissions.update(selectedSubmission.id, gradeData);
-        } else {
-            storage.attempts.update(selectedSubmission.id, gradeData);
+            setSelectedSubmission(null);
+            setScore('');
+            setFeedback('');
+        } catch (error) {
+            alert('Error saving grade: ' + error.message);
+        } finally {
+            setSaving(false);
         }
-
-        setSelectedSubmission(null);
-        setScore('');
-        setFeedback('');
-        loadSubmissions();
     };
+
+    if (isLoading) {
+        return (
+            <div className="p-4 flex items-center justify-center min-h-[50vh]">
+                <div className="text-center">
+                    <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                    <p className="text-text-muted">Loading submissions...</p>
+                </div>
+            </div>
+        );
+    }
 
     if (selectedSubmission) {
         return (
@@ -130,7 +152,7 @@ export default function TeacherGradingPage() {
                 {/* Student Answers */}
                 <div className="bg-card-light rounded-xl p-4 border border-gray-100 space-y-4">
                     <h4 className="font-bold text-text-main">📝 Student's Answers</h4>
-                    {Object.entries(selectedSubmission.answers || {}).map(([qId, answer], i) => (
+                    {selectedSubmission.answers && Object.entries(selectedSubmission.answers).map(([qId, answer], i) => (
                         <div key={qId} className="border-b border-gray-100 pb-3 last:border-0">
                             <p className="text-sm font-medium text-text-muted mb-1">Question {i + 1}</p>
                             <div className="bg-gray-50 rounded-lg p-3">
@@ -146,14 +168,9 @@ export default function TeacherGradingPage() {
                             </div>
                         </div>
                     ))}
-
-                    {/* Drawing answers if any */}
-                    {selectedSubmission.drawings && Object.entries(selectedSubmission.drawings).map(([qId, drawing], i) => (
-                        <div key={`drawing-${qId}`} className="border-b border-gray-100 pb-3 last:border-0">
-                            <p className="text-sm font-medium text-text-muted mb-1">Drawing {i + 1}</p>
-                            <img src={drawing} alt="Drawing" className="max-h-60 rounded-lg border" />
-                        </div>
-                    ))}
+                    {(!selectedSubmission.answers || Object.keys(selectedSubmission.answers).length === 0) && (
+                        <p className="text-text-muted">No text answers</p>
+                    )}
                 </div>
 
                 {/* Grading Form */}
@@ -186,15 +203,18 @@ export default function TeacherGradingPage() {
 
                     <button
                         onClick={handleGrade}
-                        disabled={score === ''}
+                        disabled={score === '' || saving}
                         className="w-full py-3 bg-primary text-white font-bold rounded-xl disabled:opacity-50"
                     >
-                        Submit Grade
+                        {saving ? 'Saving...' : 'Submit Grade'}
                     </button>
                 </div>
             </div>
         );
     }
+
+    const pendingCount = pendingSubmissions.filter(s => s.teacherScore === undefined || s.teacherScore === null).length;
+    const gradedCount = pendingSubmissions.filter(s => s.teacherScore !== undefined && s.teacherScore !== null).length;
 
     return (
         <div className="p-4 space-y-4">
@@ -221,15 +241,11 @@ export default function TeacherGradingPage() {
             {/* Stats */}
             <div className="grid grid-cols-2 gap-3">
                 <div className="bg-orange-100 rounded-xl p-4 text-center">
-                    <p className="text-2xl font-bold text-orange-600">
-                        {pendingSubmissions.filter(s => !s.teacherScore && s.teacherScore !== 0).length}
-                    </p>
+                    <p className="text-2xl font-bold text-orange-600">{pendingCount}</p>
                     <p className="text-sm text-orange-700">Pending</p>
                 </div>
                 <div className="bg-green-100 rounded-xl p-4 text-center">
-                    <p className="text-2xl font-bold text-green-600">
-                        {pendingSubmissions.filter(s => s.teacherScore !== undefined).length}
-                    </p>
+                    <p className="text-2xl font-bold text-green-600">{gradedCount}</p>
                     <p className="text-sm text-green-700">Graded</p>
                 </div>
             </div>
@@ -243,11 +259,11 @@ export default function TeacherGradingPage() {
                             onClick={() => setSelectedSubmission(submission)}
                             className="w-full flex items-center gap-4 p-4 rounded-xl bg-card-light border border-gray-100 text-left hover:border-primary transition-colors"
                         >
-                            <div className={`w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold ${submission.teacherScore !== undefined
+                            <div className={`w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold ${submission.teacherScore !== undefined && submission.teacherScore !== null
                                 ? 'bg-green-100 text-green-600'
                                 : 'bg-orange-100 text-orange-600'
                                 }`}>
-                                {submission.teacherScore !== undefined
+                                {submission.teacherScore !== undefined && submission.teacherScore !== null
                                     ? submission.teacherScore
                                     : '?'}
                             </div>

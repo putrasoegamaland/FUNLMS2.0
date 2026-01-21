@@ -1,62 +1,73 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import storage from '@/lib/storage';
+import { useClasses, useUsers, useEnrollments, useAttempts, useSubjects } from '@/hooks/useSupabaseData';
 import { RadarChart } from '@/components/charts/RadarChart';
 import { TrendChart } from '@/components/charts/TrendChart';
 import { Heatmap } from '@/components/charts/Heatmap';
 
 export default function TeacherAnalyticsPage() {
     const { user } = useAuth();
+    const { data: allClasses, loading: classesLoading } = useClasses({ teacher_id: user?.id });
+    const { data: allUsers, loading: usersLoading } = useUsers();
+    const { data: allEnrollments, loading: enrollmentsLoading } = useEnrollments();
+    const { data: allAttempts, loading: attemptsLoading } = useAttempts();
+    const { data: subjects, loading: subjectsLoading } = useSubjects();
+
     const [activeTab, setActiveTab] = useState('students');
-    const [classes, setClasses] = useState([]);
     const [selectedClass, setSelectedClass] = useState(null);
-    const [students, setStudents] = useState([]);
     const [selectedStudent, setSelectedStudent] = useState(null);
-    const [generations, setGenerations] = useState([]);
+    const [students, setStudents] = useState([]);
 
+    const isLoading = classesLoading || usersLoading || enrollmentsLoading || attemptsLoading || subjectsLoading;
+
+    // Get unique generations from students
+    const generations = useMemo(() => {
+        const studentUsers = allUsers.filter(u => u.role === 'student');
+        const gens = [...new Set(studentUsers.map(s => s.generation).filter(Boolean))].sort();
+        return gens;
+    }, [allUsers]);
+
+    // Set first class as selected when data loads
     useEffect(() => {
-        loadData();
-    }, [user]);
-
-    const loadData = () => {
-        const allClasses = storage.classes.getAll();
-        const teacherClasses = allClasses.filter(c => c.teacherId === user?.id);
-        setClasses(teacherClasses);
-
-        if (teacherClasses.length > 0) {
-            setSelectedClass(teacherClasses[0]);
-            loadClassStudents(teacherClasses[0].id);
+        if (allClasses.length > 0 && !selectedClass) {
+            setSelectedClass(allClasses[0]);
         }
+    }, [allClasses, selectedClass]);
 
-        // Get unique generations
-        const allStudents = storage.users.getAll().filter(u => u.role === 'student');
-        const gens = [...new Set(allStudents.map(s => s.generation).filter(Boolean))].sort();
-        setGenerations(gens);
-    };
+    // Load students when class changes
+    useEffect(() => {
+        if (selectedClass && allEnrollments.length > 0) {
+            loadClassStudents(selectedClass.id);
+        }
+    }, [selectedClass, allEnrollments, allUsers, allAttempts, subjects]);
 
     const loadClassStudents = (classId) => {
-        const enrollments = storage.enrollments.getAll().filter(e => e.classId === classId);
-        const studentData = enrollments.map(e => {
-            const student = storage.users.getById(e.studentId);
-            const progress = storage.progress.get(e.studentId);
-            const attempts = storage.attempts?.getAll?.()?.filter(a => a.studentId === e.studentId) || [];
+        const classEnrollments = allEnrollments.filter(e => e.class_id === classId);
+        const studentData = classEnrollments.map(e => {
+            const student = allUsers.find(u => u.id === e.student_id);
+            if (!student) return null;
+
+            const attempts = allAttempts.filter(a => a.student_id === e.student_id);
 
             // Calculate subject performance
             const subjectScores = {};
-            const subjects = storage.subjects.getAll();
             subjects.forEach(s => {
-                const subjectAttempts = attempts.filter(a => a.subjectId === s.id);
+                const subjectAttempts = attempts.filter(a => a.subject_id === s.id);
                 if (subjectAttempts.length > 0) {
                     const avgScore = subjectAttempts.reduce((sum, a) => sum + (a.score || 0), 0) / subjectAttempts.length;
                     subjectScores[s.id] = Math.round(avgScore);
                 }
             });
 
+            // Get progress data from student record or calculate from attempts
+            const totalXp = attempts.reduce((sum, a) => sum + (a.xp_earned || 0), 0);
+            const level = Math.floor(totalXp / 100) + 1;
+
             return {
                 ...student,
-                progress,
+                progress: { level, totalXp },
                 attempts,
                 subjectScores,
                 quizCount: attempts.length,
@@ -70,16 +81,15 @@ export default function TeacherAnalyticsPage() {
     };
 
     const getGenerationStats = (gen) => {
-        const genStudents = storage.users.getAll().filter(u => u.role === 'student' && u.generation === gen);
-        const subjects = storage.subjects.getAll();
+        const genStudents = allUsers.filter(u => u.role === 'student' && u.generation === gen);
 
         const stats = { totalStudents: genStudents.length, subjects: {} };
 
         subjects.forEach(subject => {
             let totalXp = 0;
             genStudents.forEach(student => {
-                const progress = storage.progress.get(student.id);
-                totalXp += progress.subjectXp?.[subject.id] || 0;
+                const studentAttempts = allAttempts.filter(a => a.student_id === student.id && a.subject_id === subject.id);
+                totalXp += studentAttempts.reduce((sum, a) => sum + (a.xp_earned || 0), 0);
             });
             stats.subjects[subject.id] = {
                 name: subject.name,
@@ -90,6 +100,8 @@ export default function TeacherAnalyticsPage() {
 
         return stats;
     };
+
+    const classes = allClasses;
 
     return (
         <div className="p-4 space-y-4">
@@ -229,6 +241,7 @@ export default function TeacherAnalyticsPage() {
                     {selectedStudent ? (
                         <StudentDetail
                             student={selectedStudent}
+                            subjects={subjects}
                             onBack={() => setSelectedStudent(null)}
                         />
                     ) : (
@@ -318,7 +331,6 @@ export default function TeacherAnalyticsPage() {
                         <div className="flex justify-center">
                             <Heatmap
                                 data={(() => {
-                                    const subjects = storage.subjects.getAll();
                                     return subjects.map(subject => {
                                         const scores = students
                                             .map(s => s.subjectScores[subject.id])
@@ -411,20 +423,19 @@ function StatCard({ label, value, icon }) {
     );
 }
 
-function StudentDetail({ student, onBack }) {
-    const subjects = storage.subjects.getAll();
-    const attempts = storage.attempts?.getAll?.()?.filter(a => a.studentId === student.id) || [];
+function StudentDetail({ student, subjects, onBack }) {
+    const attempts = student.attempts || [];
 
     // Prepare radar chart data
     const radarData = subjects.map(subject => ({
         label: subject.emoji,
-        value: student.progress?.subjectXp?.[subject.id] || 0,
+        value: student.subjectScores?.[subject.id] || 0,
         maxValue: 100,
     }));
 
     // Prepare trend chart data (last 10 attempts)
     const sortedAttempts = [...attempts]
-        .sort((a, b) => new Date(a.completedAt) - new Date(b.completedAt))
+        .sort((a, b) => new Date(a.completed_at) - new Date(b.completed_at))
         .slice(-10);
 
     const trendData = sortedAttempts.map((attempt, i) => ({

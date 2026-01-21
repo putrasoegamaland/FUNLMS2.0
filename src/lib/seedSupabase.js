@@ -19,13 +19,13 @@ export async function seedSupabaseData() {
             return { success: true, message: 'Data already exists' };
         }
 
-        // Demo users
+        // Demo users with valid UUIDs
         const users = [
-            { id: 'admin-1', username: 'admin', name: 'Administrator', password: 'admin123', role: 'admin', avatar: '👑' },
-            { id: 'teacher-1', username: 'teacher', name: 'Ms. Johnson', password: 'teacher123', role: 'teacher', avatar: '👩‍🏫' },
-            { id: 'student-1', username: 'alex', name: 'Alex', password: 'alex123', role: 'student', avatar: '🦁' },
-            { id: 'student-2', username: 'emma', name: 'Emma', password: 'emma123', role: 'student', avatar: '🦊' },
-            { id: 'student-3', username: 'leo', name: 'Leo', password: '1234', role: 'student', avatar: '🐼' },
+            { id: '00000000-0000-0000-0000-000000000001', username: 'admin', name: 'Administrator', password: 'admin123', role: 'admin', avatar: '👑' },
+            { id: '00000000-0000-0000-0000-000000000002', username: 'teacher', name: 'Ms. Johnson', password: 'teacher123', role: 'teacher', avatar: '👩‍🏫' },
+            { id: '00000000-0000-0000-0000-000000000003', username: 'alex', name: 'Alex', password: 'alex123', role: 'student', avatar: '🦁' },
+            { id: '00000000-0000-0000-0000-000000000004', username: 'emma', name: 'Emma', password: 'emma123', role: 'student', avatar: '🦊' },
+            { id: '00000000-0000-0000-0000-000000000005', username: 'leo', name: 'Leo', password: '1234', role: 'student', avatar: '🐼' },
         ];
 
         const { error: usersError } = await supabase.from('users').insert(users);
@@ -33,8 +33,8 @@ export async function seedSupabaseData() {
 
         // Demo classes
         const classes = [
-            { id: 'class-1', name: 'Grade 1A', emoji: '🌟', description: 'First grade class A', teacher_id: 'teacher-1' },
-            { id: 'class-2', name: 'Grade 1B', emoji: '🌈', description: 'First grade class B', teacher_id: 'teacher-1' },
+            { id: '10000000-0000-0000-0000-000000000001', name: 'Grade 1A', emoji: '🌟', description: 'First grade class A', teacher_id: '00000000-0000-0000-0000-000000000002' },
+            { id: '10000000-0000-0000-0000-000000000002', name: 'Grade 1B', emoji: '🌈', description: 'First grade class B', teacher_id: '00000000-0000-0000-0000-000000000002' },
         ];
 
         const { error: classesError } = await supabase.from('classes').insert(classes);
@@ -42,9 +42,9 @@ export async function seedSupabaseData() {
 
         // Demo enrollments
         const enrollments = [
-            { id: 'enroll-1', student_id: 'student-1', class_id: 'class-1' },
-            { id: 'enroll-2', student_id: 'student-2', class_id: 'class-1' },
-            { id: 'enroll-3', student_id: 'student-3', class_id: 'class-1' },
+            { id: '20000000-0000-0000-0000-000000000001', student_id: '00000000-0000-0000-0000-000000000003', class_id: '10000000-0000-0000-0000-000000000001' },
+            { id: '20000000-0000-0000-0000-000000000002', student_id: '00000000-0000-0000-0000-000000000004', class_id: '10000000-0000-0000-0000-000000000001' },
+            { id: '20000000-0000-0000-0000-000000000003', student_id: '00000000-0000-0000-0000-000000000005', class_id: '10000000-0000-0000-0000-000000000001' },
         ];
 
         const { error: enrollmentsError } = await supabase.from('enrollments').insert(enrollments);
@@ -52,10 +52,10 @@ export async function seedSupabaseData() {
 
         // Demo subjects
         const subjects = [
-            { id: 'subject-1', name: 'Mathematics', emoji: '🔢' },
-            { id: 'subject-2', name: 'Science', emoji: '🔬' },
-            { id: 'subject-3', name: 'Reading', emoji: '📚' },
-            { id: 'subject-4', name: 'English', emoji: '🔤' },
+            { id: '30000000-0000-0000-0000-000000000001', name: 'Mathematics', emoji: '🔢' },
+            { id: '30000000-0000-0000-0000-000000000002', name: 'Science', emoji: '🔬' },
+            { id: '30000000-0000-0000-0000-000000000003', name: 'Reading', emoji: '📚' },
+            { id: '30000000-0000-0000-0000-000000000004', name: 'English', emoji: '🔤' },
         ];
 
         const { error: subjectsError } = await supabase.from('subjects').insert(subjects);
@@ -63,9 +63,9 @@ export async function seedSupabaseData() {
 
         // Demo progress for students
         const progress = [
-            { id: 'progress-1', user_id: 'student-1', xp: 150, total_xp: 150, level: 2, streak: 3 },
-            { id: 'progress-2', user_id: 'student-2', xp: 80, total_xp: 80, level: 1, streak: 1 },
-            { id: 'progress-3', user_id: 'student-3', xp: 200, total_xp: 200, level: 3, streak: 5 },
+            { id: '40000000-0000-0000-0000-000000000001', user_id: '00000000-0000-0000-0000-000000000003', xp: 150, total_xp: 150, level: 2, streak: 3 },
+            { id: '40000000-0000-0000-0000-000000000002', user_id: '00000000-0000-0000-0000-000000000004', xp: 80, total_xp: 80, level: 1, streak: 1 },
+            { id: '40000000-0000-0000-0000-000000000003', user_id: '00000000-0000-0000-0000-000000000005', xp: 200, total_xp: 200, level: 3, streak: 5 },
         ];
 
         const { error: progressError } = await supabase.from('progress').insert(progress);

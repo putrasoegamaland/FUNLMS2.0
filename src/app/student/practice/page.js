@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect, useRef, Suspense } from 'react';
+import { useState, useEffect, useRef, Suspense, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useGame } from '@/contexts/GameContext';
-import storage from '@/lib/storage';
+import { useEnrollments, useAssessments, useSubjects, createRecord } from '@/hooks/useSupabaseData';
 import { generateHint, generateExplanation, isGeminiConfigured } from '@/lib/geminiAI';
 import { createExamMode, checkAccessibility, formatCountdown } from '@/lib/examMode';
 import DrawingCanvas from '@/components/DrawingCanvas';
@@ -17,8 +17,11 @@ function PracticeQuizContent() {
     const { awardXP, config } = useGame();
     const drawingRef = useRef(null);
 
+    const { data: enrollments, loading: enrollmentsLoading } = useEnrollments({ student_id: user?.id });
+    const { data: allAssessments, loading: assessmentsLoading } = useAssessments();
+    const { data: subjects, loading: subjectsLoading } = useSubjects();
+
     const [step, setStep] = useState('select'); // select, quiz, results
-    const [assessments, setAssessments] = useState([]);
     const [selectedQuiz, setSelectedQuiz] = useState(null);
     const [currentQuestion, setCurrentQuestion] = useState(0);
     const [answers, setAnswers] = useState({});
@@ -37,32 +40,31 @@ function PracticeQuizContent() {
     const [feedbackCorrect, setFeedbackCorrect] = useState(false);
     const [feedbackXP, setFeedbackXP] = useState(0);
 
-    useEffect(() => {
-        // Load available assessments for student's classes
-        const enrollments = storage.enrollments.getAll().filter(e => e.studentId === user?.id);
-        const classIds = enrollments.map(e => e.classId);
+    const isLoading = enrollmentsLoading || assessmentsLoading || subjectsLoading;
 
-        const allAssessments = storage.assessments.getAll();
-        const available = allAssessments.filter(a => {
-            if (a.type === 'game') return false; // Filter out games
-            const assigned = a.classIds?.some(cid => classIds.includes(cid)) || a.classIds?.length === 0;
-            return assigned;
+    // Filter assessments for student's classes
+    const assessments = useMemo(() => {
+        const classIds = enrollments.map(e => e.class_id);
+        return allAssessments.filter(a => {
+            if (a.type === 'game') return false;
+            const assigned = a.class_id && classIds.includes(a.class_id);
+            return assigned || !a.class_id; // Show unassigned quizzes too
         }).map(a => ({
             ...a,
             access: checkAccessibility(a),
         }));
+    }, [enrollments, allAssessments]);
 
-        setAssessments(available);
-
-        // If subject is in URL, filter by it
+    // Auto-start quiz from URL param
+    useEffect(() => {
         const subjectId = searchParams.get('subject');
-        if (subjectId) {
-            const subjectAssessments = available.filter(a => a.subjectId === subjectId && a.access.accessible);
+        if (subjectId && assessments.length > 0) {
+            const subjectAssessments = assessments.filter(a => a.subject_id === subjectId && a.access?.accessible);
             if (subjectAssessments.length > 0) {
                 startQuiz(subjectAssessments[0]);
             }
         }
-    }, [user, searchParams]);
+    }, [searchParams, assessments]);
 
     // Cleanup exam mode on unmount
     useEffect(() => {
@@ -159,7 +161,7 @@ function PracticeQuizContent() {
         setHintLoading(false);
     };
 
-    const handleSubmit = (forced = false) => {
+    const handleSubmit = async (forced = false) => {
         // Stop exam mode
         if (examMode) {
             examMode.stop();
@@ -191,26 +193,25 @@ function PracticeQuizContent() {
         }
 
         // Award XP
-        awardXP(xpEarned, quiz.subjectId);
+        awardXP(xpEarned, quiz.subject_id);
 
-        // Save attempt
+        // Save attempt to Supabase
         const attemptData = {
-            studentId: user?.id,
-            assessmentId: quiz.id,
-            subjectId: quiz.subjectId,
+            user_id: user?.id,
+            assessment_id: quiz.id,
+            subject_id: quiz.subject_id,
             score,
             answers,
-            textAnswers,
-            drawingAnswers,
-            violations: violations,
-            forcedSubmit: forced,
-            completedAt: new Date().toISOString(),
+            violations: violations.length,
+            forced_submit: forced,
+            completed_at: new Date().toISOString(),
         };
 
-        // Store attempt (create attempts storage if needed)
-        const attempts = JSON.parse(localStorage.getItem('funlms_attempts') || '[]');
-        attempts.push({ id: crypto.randomUUID(), ...attemptData });
-        localStorage.setItem('funlms_attempts', JSON.stringify(attempts));
+        try {
+            await createRecord('attempts', attemptData);
+        } catch (error) {
+            console.error('Error saving attempt:', error);
+        }
 
         setResults({
             score,
@@ -231,6 +232,17 @@ function PracticeQuizContent() {
 
     // Quiz Selection Screen
     if (step === 'select') {
+        if (isLoading) {
+            return (
+                <div className="p-4 flex items-center justify-center min-h-[50vh]">
+                    <div className="text-center">
+                        <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                        <p className="text-text-muted">Loading quizzes...</p>
+                    </div>
+                </div>
+            );
+        }
+
         return (
             <div className="p-4 space-y-4">
                 <h2 className="text-lg font-bold text-text-main">Choose a Quiz</h2>
@@ -238,8 +250,8 @@ function PracticeQuizContent() {
                 {assessments.length > 0 ? (
                     <div className="space-y-3">
                         {assessments.map((quiz) => {
-                            const subject = storage.subjects.getById(quiz.subjectId);
-                            const locked = !quiz.access.accessible;
+                            const subject = subjects.find(s => s.id === quiz.subject_id);
+                            const locked = !quiz.access?.accessible;
 
                             return (
                                 <button

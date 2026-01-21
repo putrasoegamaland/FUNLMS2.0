@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
-import storage from '@/lib/storage';
+import { useUsers, useClasses, useAttempts } from '@/hooks/useSupabaseData';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 
 // Helper function for relative time
 function getTimeAgo(dateString) {
@@ -22,41 +23,67 @@ function getTimeAgo(dateString) {
 
 export default function AdminDashboard() {
     const { t } = useLanguage();
-    const [stats, setStats] = useState({ students: 0, teachers: 0, classes: 0 });
+    const { data: users, loading: usersLoading } = useUsers();
+    const { data: classes, loading: classesLoading } = useClasses();
+    const { data: attempts, loading: attemptsLoading } = useAttempts();
     const [recentActivity, setRecentActivity] = useState([]);
 
+    const isLoading = usersLoading || classesLoading || attemptsLoading;
+
+    // Calculate stats
+    const stats = {
+        students: users.filter(u => u.role === 'student').length,
+        teachers: users.filter(u => u.role === 'teacher').length,
+        classes: classes.length,
+    };
+
+    // Load recent activity
     useEffect(() => {
-        // Load stats
-        const users = storage.users.getAll();
-        const classes = storage.classes.getAll();
+        const loadActivity = async () => {
+            if (attempts.length === 0 || !isSupabaseConfigured()) return;
 
-        setStats({
-            students: users.filter(u => u.role === 'student').length,
-            teachers: users.filter(u => u.role === 'teacher').length,
-            classes: classes.length,
-        });
+            const recentAttempts = attempts
+                .sort((a, b) => new Date(b.completed_at || b.created_at) - new Date(a.completed_at || a.created_at))
+                .slice(0, 5);
 
-        // Load real recent activity from attempts and submissions
-        const attempts = storage.attempts?.getAll?.() || [];
-        const recentAttempts = attempts
-            .sort((a, b) => new Date(b.completedAt || b.createdAt) - new Date(a.completedAt || a.createdAt))
-            .slice(0, 5)
-            .map((attempt, i) => {
-                const student = storage.users.getById(attempt.studentId);
-                const quiz = storage.assessments.getById(attempt.assessmentId);
-                const timeAgo = getTimeAgo(attempt.completedAt || attempt.createdAt);
+            const activityWithDetails = await Promise.all(recentAttempts.map(async (attempt) => {
+                let studentName = 'Student';
+                let quizTitle = 'a quiz';
+
+                if (supabase) {
+                    const { data: student } = await supabase.from('users').select('name').eq('id', attempt.user_id).single();
+                    const { data: quiz } = await supabase.from('assessments').select('title').eq('id', attempt.assessment_id).single();
+                    studentName = student?.name || 'Student';
+                    quizTitle = quiz?.title || 'a quiz';
+                }
+
                 return {
-                    id: attempt.id || i,
+                    id: attempt.id,
                     type: 'quiz',
                     icon: 'quiz',
-                    title: student?.name || 'Student',
-                    desc: `Completed ${quiz?.title || 'a quiz'}`,
-                    time: timeAgo,
+                    title: studentName,
+                    desc: `Completed ${quizTitle}`,
+                    time: getTimeAgo(attempt.completed_at || attempt.created_at),
                     color: 'green'
                 };
-            });
-        setRecentActivity(recentAttempts.length > 0 ? recentAttempts : []);
-    }, []);
+            }));
+
+            setRecentActivity(activityWithDetails);
+        };
+
+        loadActivity();
+    }, [attempts]);
+
+    if (isLoading) {
+        return (
+            <div className="p-4 flex items-center justify-center min-h-[50vh]">
+                <div className="text-center">
+                    <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                    <p className="text-text-muted">Loading dashboard...</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="p-4 space-y-6">
@@ -66,21 +93,21 @@ export default function AdminDashboard() {
                     icon="school"
                     label={t('total_students')}
                     value={stats.students}
-                    trend="+5%"
+                    trend="-"
                     color="primary"
                 />
                 <StatCard
                     icon="cast_for_education"
                     label={t('total_teachers')}
                     value={stats.teachers}
-                    trend="+2%"
+                    trend="-"
                     color="purple"
                 />
                 <StatCard
                     icon="class"
                     label={t('active_classes')}
                     value={stats.classes}
-                    trend="0%"
+                    trend="-"
                     color="orange"
                 />
             </section>
@@ -106,18 +133,18 @@ export default function AdminDashboard() {
                     />
                 </div>
                 <div className="grid grid-cols-2 gap-3 mt-3">
-                    <button className="flex items-center gap-3 p-4 rounded-xl bg-card-light border border-gray-100 shadow-sm active:bg-gray-50 transition-colors">
-                        <div className="bg-blue-100 p-2 rounded-lg">
-                            <span className="material-symbols-outlined text-blue-600" style={{ fontSize: 20 }}>bar_chart</span>
+                    <a href="/admin/gamification" className="flex items-center gap-3 p-4 rounded-xl bg-card-light border border-gray-100 shadow-sm active:bg-gray-50 transition-colors">
+                        <div className="bg-yellow-100 p-2 rounded-lg">
+                            <span className="material-symbols-outlined text-yellow-600" style={{ fontSize: 20 }}>emoji_events</span>
                         </div>
-                        <span className="font-bold text-sm text-text-main">Reports</span>
-                    </button>
-                    <button className="flex items-center gap-3 p-4 rounded-xl bg-card-light border border-gray-100 shadow-sm active:bg-gray-50 transition-colors">
+                        <span className="font-bold text-sm text-text-main">Gamification</span>
+                    </a>
+                    <a href="/admin/settings" className="flex items-center gap-3 p-4 rounded-xl bg-card-light border border-gray-100 shadow-sm active:bg-gray-50 transition-colors">
                         <div className="bg-gray-100 p-2 rounded-lg">
                             <span className="material-symbols-outlined text-gray-600" style={{ fontSize: 20 }}>settings</span>
                         </div>
                         <span className="font-bold text-sm text-text-main">{t('settings')}</span>
-                    </button>
+                    </a>
                 </div>
             </section>
 
@@ -128,9 +155,15 @@ export default function AdminDashboard() {
                     <button className="text-primary text-sm font-semibold">{t('view_all')}</button>
                 </div>
                 <div className="space-y-3">
-                    {recentActivity.map(activity => (
-                        <ActivityItem key={activity.id} {...activity} />
-                    ))}
+                    {recentActivity.length > 0 ? (
+                        recentActivity.map(activity => (
+                            <ActivityItem key={activity.id} {...activity} />
+                        ))
+                    ) : (
+                        <div className="text-center py-8 text-text-muted">
+                            No recent activity
+                        </div>
+                    )}
                 </div>
             </section>
         </div>
@@ -151,9 +184,6 @@ function StatCard({ icon, label, value, trend, color }) {
             </div>
             <p className="text-text-muted text-sm font-medium">{label}</p>
             <p className="text-3xl font-bold text-text-main mt-1">{value}</p>
-            <span className="text-xs font-bold text-green-600 bg-green-100 px-1.5 py-0.5 rounded mt-2 inline-block">
-                {trend}
-            </span>
         </div>
     );
 }

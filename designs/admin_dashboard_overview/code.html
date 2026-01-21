@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>FunLMS Kids - Admin Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#0df259",
+                        "background-light": "#f5f8f6",
+                        "background-dark": "#102216",
+                        "card-light": "#ffffff",
+                        "card-dark": "#1a2e22",
+                        "text-main": "#0d1c12",
+                        "text-muted": "#5e7a68",
+                    },
+                    fontFamily: {
+                        "display": ["Plus Jakarta Sans", "sans-serif"]
+                    },
+                    borderRadius: { "DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        /* Custom scrollbar hide for cleaner mobile look */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-text-main dark:text-white overflow-x-hidden transition-colors duration-200">
+<div class="relative flex flex-col w-full max-w-md mx-auto min-h-screen bg-background-light dark:bg-background-dark pb-20">
+<!-- TopAppBar -->
+<header class="sticky top-0 z-50 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-sm px-4 pt-12 pb-4 border-b border-gray-100 dark:border-gray-800">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="relative">
+<div class="bg-center bg-no-repeat bg-cover rounded-full size-10 ring-2 ring-primary ring-offset-2 dark:ring-offset-background-dark" data-alt="Admin user profile picture showing a smiling professional" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCHnukKOG9X8_3YNBdxKqRQrzr-oAYJr-fCw3SnuINy9IUZ09ubj8XzraAehyXW86RhIo_QbdoEEvE5pi3yaDASv0NXhYQcg72XnDDQciqp5dTs3hdmyFiULs-aYWIafqgetMhbCVo4pfNUVLHjn2qSjU1MNdknjhMNZGyDyZvxyGxGD9FQK28aFHlP36xAHWIFIU2ubqWDvoKaRCnpQACnMBcKIqqZTcoje9fOzTUulsS1-FItr1MGCrTWsNGK1AIJ_cBcisXfedw");'>
+</div>
+<div class="absolute bottom-0 right-0 size-3 bg-primary rounded-full border-2 border-white dark:border-background-dark"></div>
+</div>
+<div>
+<h2 class="text-text-main dark:text-white text-lg font-bold leading-tight">Dashboard</h2>
+<p class="text-xs text-text-muted font-medium">Welcome back, Sarah!</p>
+</div>
+</div>
+<button class="flex items-center justify-center rounded-full size-10 bg-white dark:bg-card-dark shadow-sm active:scale-95 transition-transform text-text-main dark:text-white">
+<span class="material-symbols-outlined" style="font-size: 24px;">notifications</span>
+</button>
+</div>
+</header>
+<!-- Stats Section -->
+<section class="mt-6 px-4">
+<h3 class="sr-only">Statistics</h3>
+<div class="flex gap-4 overflow-x-auto no-scrollbar pb-4 snap-x">
+<!-- Students Card -->
+<div class="snap-start flex min-w-[160px] flex-1 flex-col justify-between gap-4 rounded-xl p-5 bg-card-light dark:bg-card-dark shadow-sm border border-gray-100 dark:border-gray-800 relative overflow-hidden group">
+<div class="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+<span class="material-symbols-outlined text-primary" style="font-size: 64px;">school</span>
+</div>
+<div>
+<div class="bg-primary/10 w-10 h-10 rounded-lg flex items-center justify-center mb-3">
+<span class="material-symbols-outlined text-primary dark:text-white">school</span>
+</div>
+<p class="text-text-muted text-sm font-medium leading-normal">Total Students</p>
+</div>
+<div>
+<p class="text-text-main dark:text-white text-3xl font-bold leading-tight tracking-tight">1,240</p>
+<div class="flex items-center gap-1 mt-1">
+<span class="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-bold px-1.5 py-0.5 rounded flex items-center">
+<span class="material-symbols-outlined text-[10px] mr-0.5">trending_up</span> 5%
+                            </span>
+<span class="text-text-muted text-xs">vs last week</span>
+</div>
+</div>
+</div>
+<!-- Teachers Card -->
+<div class="snap-start flex min-w-[160px] flex-1 flex-col justify-between gap-4 rounded-xl p-5 bg-card-light dark:bg-card-dark shadow-sm border border-gray-100 dark:border-gray-800 relative overflow-hidden group">
+<div class="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+<span class="material-symbols-outlined text-purple-500" style="font-size: 64px;">cast_for_education</span>
+</div>
+<div>
+<div class="bg-purple-100 dark:bg-purple-900/20 w-10 h-10 rounded-lg flex items-center justify-center mb-3">
+<span class="material-symbols-outlined text-purple-600 dark:text-purple-300">cast_for_education</span>
+</div>
+<p class="text-text-muted text-sm font-medium leading-normal">Total Teachers</p>
+</div>
+<div>
+<p class="text-text-main dark:text-white text-3xl font-bold leading-tight tracking-tight">85</p>
+<div class="flex items-center gap-1 mt-1">
+<span class="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-bold px-1.5 py-0.5 rounded flex items-center">
+<span class="material-symbols-outlined text-[10px] mr-0.5">trending_up</span> 2%
+                            </span>
+<span class="text-text-muted text-xs">vs last week</span>
+</div>
+</div>
+</div>
+<!-- Classes Card -->
+<div class="snap-start flex min-w-[160px] flex-1 flex-col justify-between gap-4 rounded-xl p-5 bg-card-light dark:bg-card-dark shadow-sm border border-gray-100 dark:border-gray-800 relative overflow-hidden group">
+<div class="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+<span class="material-symbols-outlined text-orange-500" style="font-size: 64px;">class</span>
+</div>
+<div>
+<div class="bg-orange-100 dark:bg-orange-900/20 w-10 h-10 rounded-lg flex items-center justify-center mb-3">
+<span class="material-symbols-outlined text-orange-600 dark:text-orange-300">class</span>
+</div>
+<p class="text-text-muted text-sm font-medium leading-normal">Active Classes</p>
+</div>
+<div>
+<p class="text-text-main dark:text-white text-3xl font-bold leading-tight tracking-tight">42</p>
+<div class="flex items-center gap-1 mt-1">
+<span class="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs font-bold px-1.5 py-0.5 rounded">0%</span>
+<span class="text-text-muted text-xs">stable</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Quick Actions Header -->
+<div class="flex items-center justify-between px-4 mt-2 mb-2">
+<h3 class="text-text-main dark:text-white text-lg font-bold leading-tight tracking-[-0.015em]">Quick Actions</h3>
+<button class="text-primary text-sm font-semibold">Edit</button>
+</div>
+<!-- Quick Actions Grid -->
+<section class="px-4 grid grid-cols-2 gap-3">
+<!-- Manage Users -->
+<button class="group relative flex flex-col justify-end p-4 h-32 w-full rounded-2xl overflow-hidden bg-white dark:bg-card-dark shadow-sm active:scale-[0.98] transition-all">
+<div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-10"></div>
+<div class="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-110" data-alt="Group of diverse kindergarten children raising hands in a classroom" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuB9Oev1QCJ5ik6oxOLaEDWcwJFEZ_2f1Ab3o5gqhesPz-IDDq3XcQkbfUdu6TYEMPFPgnT_52Ogt5iMgMHEB-S1GE5aNipLf0ZH1vgx4-73I-HNhOTPdxACEr9xwMdBJKqGWoMfBuhP7O8961iI5K7d-7B4ahh7RyHrn2jVDGzcyUhW5tSgt23sfQt1xEYnskOO7p6bdmLYSwYo_RMx9KTbeR6V8NdOzPDbJZ6aXM1zy6swUfjuXPIqWOvL-0Ygxm2LkCW9ZVNLeKQ');"></div>
+<div class="relative z-20 flex flex-col items-start gap-1">
+<div class="bg-white/20 backdrop-blur-md p-1.5 rounded-lg mb-1">
+<span class="material-symbols-outlined text-white" style="font-size: 20px;">group</span>
+</div>
+<span class="text-white font-bold text-base">Manage Users</span>
+</div>
+</button>
+<!-- Manage Classes -->
+<button class="group relative flex flex-col justify-end p-4 h-32 w-full rounded-2xl overflow-hidden bg-white dark:bg-card-dark shadow-sm active:scale-[0.98] transition-all">
+<div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-10"></div>
+<div class="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-110" data-alt="Colorful classroom setup with small tables and chairs for kids" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuA4RQKnbY7dJD7RzvmJdKR_dQLDkjrvNhT5AqPvVwPo4ZIfxna2iVz5lNHKg5AOTKkWA1U5fyqcc3CweVqggjobIpQ490UCHX4zTXzU1wT-RbHReHBh4oENNG1Fv2IGrrZ9HMaZT1goPkgm6yHxBkCezz9ZSY1Np9ZYvLxLzrZhoZyRic0yiYwwm-eFZcp7RVBXpbfWMTzjyuCT8c43ErDa10qcpSApRIRJ3j8UL9XVFFuhYuYzbPPCL7LyloOPbUnezb2gVed3k1c');"></div>
+<div class="relative z-20 flex flex-col items-start gap-1">
+<div class="bg-white/20 backdrop-blur-md p-1.5 rounded-lg mb-1">
+<span class="material-symbols-outlined text-white" style="font-size: 20px;">meeting_room</span>
+</div>
+<span class="text-white font-bold text-base">Manage Classes</span>
+</div>
+</button>
+<!-- Secondary Actions Row -->
+<button class="flex items-center gap-3 p-4 rounded-xl bg-card-light dark:bg-card-dark border border-gray-100 dark:border-gray-800 shadow-sm active:bg-gray-50 dark:active:bg-gray-800 transition-colors">
+<div class="bg-blue-100 dark:bg-blue-900/30 p-2 rounded-lg text-blue-600 dark:text-blue-400">
+<span class="material-symbols-outlined" style="font-size: 20px;">bar_chart</span>
+</div>
+<span class="font-bold text-sm text-text-main dark:text-white">Reports</span>
+</button>
+<button class="flex items-center gap-3 p-4 rounded-xl bg-card-light dark:bg-card-dark border border-gray-100 dark:border-gray-800 shadow-sm active:bg-gray-50 dark:active:bg-gray-800 transition-colors">
+<div class="bg-gray-100 dark:bg-gray-700 p-2 rounded-lg text-gray-600 dark:text-gray-300">
+<span class="material-symbols-outlined" style="font-size: 20px;">settings</span>
+</div>
+<span class="font-bold text-sm text-text-main dark:text-white">Settings</span>
+</button>
+</section>
+<!-- Recent Activity Header -->
+<div class="flex items-center justify-between px-4 mt-6 mb-2">
+<h3 class="text-text-main dark:text-white text-lg font-bold leading-tight tracking-[-0.015em]">Recent Activity</h3>
+<button class="text-primary text-sm font-semibold">View All</button>
+</div>
+<!-- Activity List -->
+<section class="px-4 flex flex-col gap-3">
+<!-- Activity Item 1 -->
+<div class="flex items-center gap-3 p-3 rounded-xl bg-card-light dark:bg-card-dark border border-gray-100 dark:border-gray-800 shadow-sm">
+<div class="relative shrink-0">
+<div class="w-10 h-10 rounded-full bg-cover bg-center" data-alt="Portrait of a female teacher Mrs. Johnson" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAy0A0HhG7ZEeLRW0m5uIOtzKiFTAc9DyLhTgmjjmTVk-peM49IaoYEILjyCoYkKTN2YTyiQZ3YdX_sRNtAcDLZqqSJ8rfX8l8Qx9awYMdC-S6gF_srWBAYZubXmrg4_MaSXntonQfGh1pxB--elAY451AnvNQnlJX8FavI4PmY46FtMy4iM7ZrlMmLjua0DDaYodhibcvkrr4yk8G4WkbM6kfuuktWNh6ej57Tu5GrYXR3rmA-OrN-13bA4IXSystdC1GRObPLYRA');"></div>
+<div class="absolute -bottom-1 -right-1 bg-green-500 border-2 border-white dark:border-card-dark w-4 h-4 rounded-full flex items-center justify-center">
+<span class="material-symbols-outlined text-white" style="font-size: 10px;">add</span>
+</div>
+</div>
+<div class="flex-1 min-w-0">
+<p class="text-sm font-bold text-text-main dark:text-white truncate">Mrs. Johnson</p>
+<p class="text-xs text-text-muted truncate">Added new course 'Math 101'</p>
+</div>
+<span class="text-xs font-medium text-text-muted whitespace-nowrap">2m ago</span>
+</div>
+<!-- Activity Item 2 -->
+<div class="flex items-center gap-3 p-3 rounded-xl bg-card-light dark:bg-card-dark border border-gray-100 dark:border-gray-800 shadow-sm">
+<div class="relative shrink-0 flex items-center justify-center w-10 h-10 rounded-full bg-orange-100 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400">
+<span class="material-symbols-outlined" style="font-size: 20px;">person_add</span>
+</div>
+<div class="flex-1 min-w-0">
+<p class="text-sm font-bold text-text-main dark:text-white truncate">New Student Registration</p>
+<p class="text-xs text-text-muted truncate">Sarah J. joined the platform</p>
+</div>
+<span class="text-xs font-medium text-text-muted whitespace-nowrap">15m ago</span>
+</div>
+<!-- Activity Item 3 -->
+<div class="flex items-center gap-3 p-3 rounded-xl bg-card-light dark:bg-card-dark border border-gray-100 dark:border-gray-800 shadow-sm">
+<div class="relative shrink-0 flex items-center justify-center w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400">
+<span class="material-symbols-outlined" style="font-size: 20px;">backup</span>
+</div>
+<div class="flex-1 min-w-0">
+<p class="text-sm font-bold text-text-main dark:text-white truncate">System Backup</p>
+<p class="text-xs text-text-muted truncate">Daily automated backup completed</p>
+</div>
+<span class="text-xs font-medium text-text-muted whitespace-nowrap">1h ago</span>
+</div>
+</section>
+<!-- Bottom Navigation Spacer -->
+<div class="h-20"></div>
+<!-- Bottom Navigation -->
+<nav class="fixed bottom-0 w-full max-w-md bg-white dark:bg-card-dark border-t border-gray-100 dark:border-gray-800 pb-safe pt-2 px-6 flex justify-between items-center z-50 rounded-t-2xl shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+<button class="flex flex-col items-center gap-1 p-2 text-primary">
+<span class="material-symbols-outlined fill-1" style="font-variation-settings: 'FILL' 1;">dashboard</span>
+<span class="text-[10px] font-bold">Home</span>
+</button>
+<button class="flex flex-col items-center gap-1 p-2 text-text-muted hover:text-text-main dark:hover:text-white transition-colors">
+<span class="material-symbols-outlined">group</span>
+<span class="text-[10px] font-medium">Users</span>
+</button>
+<!-- FAB Center Button -->
+<div class="relative -top-6">
+<button class="flex items-center justify-center w-14 h-14 bg-primary rounded-full shadow-lg shadow-primary/30 text-white dark:text-black hover:scale-105 transition-transform">
+<span class="material-symbols-outlined" style="font-size: 28px;">add</span>
+</button>
+</div>
+<button class="flex flex-col items-center gap-1 p-2 text-text-muted hover:text-text-main dark:hover:text-white transition-colors">
+<span class="material-symbols-outlined">class</span>
+<span class="text-[10px] font-medium">Classes</span>
+</button>
+<button class="flex flex-col items-center gap-1 p-2 text-text-muted hover:text-text-main dark:hover:text-white transition-colors">
+<span class="material-symbols-outlined">settings</span>
+<span class="text-[10px] font-medium">Settings</span>
+</button>
+</nav>
+</div>
+</body></html>

@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Teacher Book Library - FunLMS Kids</title>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Theme Configuration -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#0df259", // Neon Green
+                        "background-light": "#f8fcf9",
+                        "background-dark": "#102216",
+                        "surface-light": "#ffffff",
+                        "surface-dark": "#1c2e22",
+                        "text-main-light": "#0d1c12",
+                        "text-main-dark": "#e0ebe4",
+                        "text-sec-light": "#496e55",
+                        "text-sec-dark": "#8fa896",
+                    },
+                    fontFamily: {
+                        "display": ["Lexend", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "2xl": "2rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom scrollbar hiding for clean UI */
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-text-main-light dark:text-text-main-dark transition-colors duration-200">
+<div class="relative flex h-full min-h-screen w-full flex-col overflow-x-hidden pb-24">
+<!-- Top App Bar -->
+<header class="sticky top-0 z-20 flex items-center justify-between bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-sm p-4 pb-2 transition-colors">
+<button class="flex size-12 shrink-0 items-center justify-center rounded-full active:bg-black/5 dark:active:bg-white/10 transition-colors">
+<span class="material-symbols-outlined text-text-main-light dark:text-text-main-dark" style="font-size: 24px;">arrow_back_ios_new</span>
+</button>
+<h2 class="text-xl font-bold leading-tight tracking-tight flex-1 text-center">Class Library</h2>
+<button class="flex size-12 shrink-0 items-center justify-center rounded-full active:bg-black/5 dark:active:bg-white/10 transition-colors">
+<span class="material-symbols-outlined text-text-main-light dark:text-text-main-dark" style="font-size: 24px;">tune</span>
+</button>
+</header>
+<!-- Search Bar -->
+<div class="px-4 py-2 sticky top-[60px] z-10 bg-background-light dark:bg-background-dark transition-colors">
+<label class="flex flex-col h-12 w-full">
+<div class="flex w-full flex-1 items-center rounded-full bg-surface-light dark:bg-surface-dark shadow-sm border border-gray-100 dark:border-gray-800 transition-colors">
+<div class="flex items-center justify-center pl-4 pr-2">
+<span class="material-symbols-outlined text-text-sec-light dark:text-text-sec-dark" style="font-size: 24px;">search</span>
+</div>
+<input class="flex w-full min-w-0 flex-1 bg-transparent text-text-main-light dark:text-text-main-dark placeholder:text-text-sec-light dark:placeholder:text-text-sec-dark focus:outline-0 text-base font-normal leading-normal h-full px-2 rounded-r-full" placeholder="Search by title or topic..." value=""/>
+</div>
+</label>
+</div>
+<!-- Filter Chips -->
+<div class="flex gap-3 px-4 py-3 overflow-x-auto hide-scrollbar sticky top-[116px] z-10 bg-background-light dark:bg-background-dark transition-colors">
+<button class="flex h-9 shrink-0 items-center justify-center gap-x-2 rounded-full bg-primary text-[#0d1c12] px-5 shadow-sm transition-transform active:scale-95">
+<p class="text-sm font-bold leading-normal">All</p>
+</button>
+<button class="flex h-9 shrink-0 items-center justify-center gap-x-2 rounded-full bg-surface-light dark:bg-surface-dark border border-gray-200 dark:border-gray-700 px-5 shadow-sm transition-transform active:scale-95">
+<p class="text-text-main-light dark:text-text-main-dark text-sm font-medium leading-normal">Grade 1A</p>
+</button>
+<button class="flex h-9 shrink-0 items-center justify-center gap-x-2 rounded-full bg-surface-light dark:bg-surface-dark border border-gray-200 dark:border-gray-700 px-5 shadow-sm transition-transform active:scale-95">
+<p class="text-text-main-light dark:text-text-main-dark text-sm font-medium leading-normal">Kinder B</p>
+</button>
+<button class="flex h-9 shrink-0 items-center justify-center gap-x-2 rounded-full bg-surface-light dark:bg-surface-dark border border-gray-200 dark:border-gray-700 px-5 shadow-sm transition-transform active:scale-95">
+<p class="text-text-main-light dark:text-text-main-dark text-sm font-medium leading-normal">Grade 2</p>
+</button>
+<button class="flex h-9 shrink-0 items-center justify-center gap-x-2 rounded-full bg-surface-light dark:bg-surface-dark border border-gray-200 dark:border-gray-700 px-5 shadow-sm transition-transform active:scale-95">
+<p class="text-text-main-light dark:text-text-main-dark text-sm font-medium leading-normal">Grade 3</p>
+</button>
+</div>
+<!-- Books Grid -->
+<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 p-4">
+<!-- Book Card 1 -->
+<div class="group relative flex flex-col rounded-xl overflow-hidden bg-surface-light dark:bg-surface-dark shadow-sm border border-gray-100 dark:border-gray-800 transition-all hover:shadow-md">
+<!-- Cover Area -->
+<div class="aspect-square w-full bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center relative">
+<span class="text-6xl drop-shadow-sm filter">🦁</span>
+<!-- Action Buttons Overlay -->
+<div class="absolute top-2 right-2 flex gap-1.5 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+<button aria-label="Edit Book" class="size-8 flex items-center justify-center rounded-full bg-white/90 dark:bg-black/60 backdrop-blur-sm shadow-sm hover:bg-white dark:hover:bg-black text-gray-700 dark:text-gray-200 transition-colors">
+<span class="material-symbols-outlined" style="font-size: 18px;">edit</span>
+</button>
+<button aria-label="Delete Book" class="size-8 flex items-center justify-center rounded-full bg-white/90 dark:bg-black/60 backdrop-blur-sm shadow-sm hover:bg-red-50 dark:hover:bg-red-900/30 text-red-500 transition-colors">
+<span class="material-symbols-outlined" style="font-size: 18px;">delete</span>
+</button>
+</div>
+</div>
+<!-- Info Area -->
+<div class="p-3 flex flex-col gap-1">
+<span class="text-xs font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">Grade 1A</span>
+<h3 class="text-base font-bold text-text-main-light dark:text-text-main-dark leading-tight line-clamp-2">The Brave Lion</h3>
+</div>
+</div>
+<!-- Book Card 2 -->
+<div class="group relative flex flex-col rounded-xl overflow-hidden bg-surface-light dark:bg-surface-dark shadow-sm border border-gray-100 dark:border-gray-800 transition-all hover:shadow-md">
+<div class="aspect-square w-full bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center relative">
+<span class="text-6xl drop-shadow-sm filter">🚀</span>
+<div class="absolute top-2 right-2 flex gap-1.5 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+<button aria-label="Edit Book" class="size-8 flex items-center justify-center rounded-full bg-white/90 dark:bg-black/60 backdrop-blur-sm shadow-sm hover:bg-white dark:hover:bg-black text-gray-700 dark:text-gray-200 transition-colors">
+<span class="material-symbols-outlined" style="font-size: 18px;">edit</span>
+</button>
+<button aria-label="Delete Book" class="size-8 flex items-center justify-center rounded-full bg-white/90 dark:bg-black/60 backdrop-blur-sm shadow-sm hover:bg-red-50 dark:hover:bg-red-900/30 text-red-500 transition-colors">
+<span class="material-symbols-outlined" style="font-size: 18px;">delete</span>
+</button>
+</div>
+</div>
+<div class="p-3 flex flex-col gap-1">
+<span class="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">Kinder B</span>
+<h3 class="text-base font-bold text-text-main-light dark:text-text-main-dark leading-tight line-clamp-2">Space Adventure</h3>
+</div>
+</div>
+<!-- Book Card 3 -->
+<div class="group relative flex flex-col rounded-xl overflow-hidden bg-surface-light dark:bg-surface-dark shadow-sm border border-gray-100 dark:border-gray-800 transition-all hover:shadow-md">
+<div class="aspect-square w-full bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center relative">
+<span class="text-6xl drop-shadow-sm filter">🔢</span>
+<div class="absolute top-2 right-2 flex gap-1.5 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+<button aria-label="Edit Book" class="size-8 flex items-center justify-center rounded-full bg-white/90 dark:bg-black/60 backdrop-blur-sm shadow-sm hover:bg-white dark:hover:bg-black text-gray-700 dark:text-gray-200 transition-colors">
+<span class="material-symbols-outlined" style="font-size: 18px;">edit</span>
+</button>
+<button aria-label="Delete Book" class="size-8 flex items-center justify-center rounded-full bg-white/90 dark:bg-black/60 backdrop-blur-sm shadow-sm hover:bg-red-50 dark:hover:bg-red-900/30 text-red-500 transition-colors">
+<span class="material-symbols-outlined" style="font-size: 18px;">delete</span>
+</button>
+</div>
+</div>
+<div class="p-3 flex flex-col gap-1">
+<span class="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">All Classes</span>
+<h3 class="text-base font-bold text-text-main-light dark:text-text-main-dark leading-tight line-clamp-2">Fun with Numbers</h3>
+</div>
+</div>
+<!-- Book Card 4 -->
+<div class="group relative flex flex-col rounded-xl overflow-hidden bg-surface-light dark:bg-surface-dark shadow-sm border border-gray-100 dark:border-gray-800 transition-all hover:shadow-md">
+<div class="aspect-square w-full bg-rose-100 dark:bg-rose-900/40 flex items-center justify-center relative">
+<span class="text-6xl drop-shadow-sm filter">🍎</span>
+<div class="absolute top-2 right-2 flex gap-1.5 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+<button aria-label="Edit Book" class="size-8 flex items-center justify-center rounded-full bg-white/90 dark:bg-black/60 backdrop-blur-sm shadow-sm hover:bg-white dark:hover:bg-black text-gray-700 dark:text-gray-200 transition-colors">
+<span class="material-symbols-outlined" style="font-size: 18px;">edit</span>
+</button>
+<button aria-label="Delete Book" class="size-8 flex items-center justify-center rounded-full bg-white/90 dark:bg-black/60 backdrop-blur-sm shadow-sm hover:bg-red-50 dark:hover:bg-red-900/30 text-red-500 transition-colors">
+<span class="material-symbols-outlined" style="font-size: 18px;">delete</span>
+</button>
+</div>
+</div>
+<div class="p-3 flex flex-col gap-1">
+<span class="text-xs font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400">Grade 1A</span>
+<h3 class="text-base font-bold text-text-main-light dark:text-text-main-dark leading-tight line-clamp-2">Healthy Snacks</h3>
+</div>
+</div>
+<!-- Book Card 5 -->
+<div class="group relative flex flex-col rounded-xl overflow-hidden bg-surface-light dark:bg-surface-dark shadow-sm border border-gray-100 dark:border-gray-800 transition-all hover:shadow-md">
+<div class="aspect-square w-full bg-sky-100 dark:bg-sky-900/40 flex items-center justify-center relative">
+<span class="text-6xl drop-shadow-sm filter">🌊</span>
+<div class="absolute top-2 right-2 flex gap-1.5 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+<button aria-label="Edit Book" class="size-8 flex items-center justify-center rounded-full bg-white/90 dark:bg-black/60 backdrop-blur-sm shadow-sm hover:bg-white dark:hover:bg-black text-gray-700 dark:text-gray-200 transition-colors">
+<span class="material-symbols-outlined" style="font-size: 18px;">edit</span>
+</button>
+<button aria-label="Delete Book" class="size-8 flex items-center justify-center rounded-full bg-white/90 dark:bg-black/60 backdrop-blur-sm shadow-sm hover:bg-red-50 dark:hover:bg-red-900/30 text-red-500 transition-colors">
+<span class="material-symbols-outlined" style="font-size: 18px;">delete</span>
+</button>
+</div>
+</div>
+<div class="p-3 flex flex-col gap-1">
+<span class="text-xs font-bold uppercase tracking-wider text-sky-600 dark:text-sky-400">Grade 2</span>
+<h3 class="text-base font-bold text-text-main-light dark:text-text-main-dark leading-tight line-clamp-2">Blue Ocean</h3>
+</div>
+</div>
+<!-- Book Card 6 -->
+<div class="group relative flex flex-col rounded-xl overflow-hidden bg-surface-light dark:bg-surface-dark shadow-sm border border-gray-100 dark:border-gray-800 transition-all hover:shadow-md">
+<div class="aspect-square w-full bg-fuchsia-100 dark:bg-fuchsia-900/40 flex items-center justify-center relative">
+<span class="text-6xl drop-shadow-sm filter">🎨</span>
+<div class="absolute top-2 right-2 flex gap-1.5 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+<button aria-label="Edit Book" class="size-8 flex items-center justify-center rounded-full bg-white/90 dark:bg-black/60 backdrop-blur-sm shadow-sm hover:bg-white dark:hover:bg-black text-gray-700 dark:text-gray-200 transition-colors">
+<span class="material-symbols-outlined" style="font-size: 18px;">edit</span>
+</button>
+<button aria-label="Delete Book" class="size-8 flex items-center justify-center rounded-full bg-white/90 dark:bg-black/60 backdrop-blur-sm shadow-sm hover:bg-red-50 dark:hover:bg-red-900/30 text-red-500 transition-colors">
+<span class="material-symbols-outlined" style="font-size: 18px;">delete</span>
+</button>
+</div>
+</div>
+<div class="p-3 flex flex-col gap-1">
+<span class="text-xs font-bold uppercase tracking-wider text-fuchsia-600 dark:text-fuchsia-400">Art Class</span>
+<h3 class="text-base font-bold text-text-main-light dark:text-text-main-dark leading-tight line-clamp-2">World Colors</h3>
+</div>
+</div>
+<!-- Book Card 7 -->
+<div class="group relative flex flex-col rounded-xl overflow-hidden bg-surface-light dark:bg-surface-dark shadow-sm border border-gray-100 dark:border-gray-800 transition-all hover:shadow-md">
+<div class="aspect-square w-full bg-orange-100 dark:bg-orange-900/40 flex items-center justify-center relative">
+<span class="text-6xl drop-shadow-sm filter">🦒</span>
+<div class="absolute top-2 right-2 flex gap-1.5 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+<button aria-label="Edit Book" class="size-8 flex items-center justify-center rounded-full bg-white/90 dark:bg-black/60 backdrop-blur-sm shadow-sm hover:bg-white dark:hover:bg-black text-gray-700 dark:text-gray-200 transition-colors">
+<span class="material-symbols-outlined" style="font-size: 18px;">edit</span>
+</button>
+<button aria-label="Delete Book" class="size-8 flex items-center justify-center rounded-full bg-white/90 dark:bg-black/60 backdrop-blur-sm shadow-sm hover:bg-red-50 dark:hover:bg-red-900/30 text-red-500 transition-colors">
+<span class="material-symbols-outlined" style="font-size: 18px;">delete</span>
+</button>
+</div>
+</div>
+<div class="p-3 flex flex-col gap-1">
+<span class="text-xs font-bold uppercase tracking-wider text-orange-600 dark:text-orange-400">Kinder B</span>
+<h3 class="text-base font-bold text-text-main-light dark:text-text-main-dark leading-tight line-clamp-2">Tall Giraffe</h3>
+</div>
+</div>
+<!-- Book Card 8 -->
+<div class="group relative flex flex-col rounded-xl overflow-hidden bg-surface-light dark:bg-surface-dark shadow-sm border border-gray-100 dark:border-gray-800 transition-all hover:shadow-md">
+<div class="aspect-square w-full bg-lime-100 dark:bg-lime-900/40 flex items-center justify-center relative">
+<span class="text-6xl drop-shadow-sm filter">🦖</span>
+<div class="absolute top-2 right-2 flex gap-1.5 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+<button aria-label="Edit Book" class="size-8 flex items-center justify-center rounded-full bg-white/90 dark:bg-black/60 backdrop-blur-sm shadow-sm hover:bg-white dark:hover:bg-black text-gray-700 dark:text-gray-200 transition-colors">
+<span class="material-symbols-outlined" style="font-size: 18px;">edit</span>
+</button>
+<button aria-label="Delete Book" class="size-8 flex items-center justify-center rounded-full bg-white/90 dark:bg-black/60 backdrop-blur-sm shadow-sm hover:bg-red-50 dark:hover:bg-red-900/30 text-red-500 transition-colors">
+<span class="material-symbols-outlined" style="font-size: 18px;">delete</span>
+</button>
+</div>
+</div>
+<div class="p-3 flex flex-col gap-1">
+<span class="text-xs font-bold uppercase tracking-wider text-lime-600 dark:text-lime-400">Grade 2</span>
+<h3 class="text-base font-bold text-text-main-light dark:text-text-main-dark leading-tight line-clamp-2">Dino History</h3>
+</div>
+</div>
+</div>
+<!-- Add Button (FAB) -->
+<div class="fixed bottom-24 right-4 z-20">
+<button class="flex items-center justify-center overflow-hidden rounded-full h-14 px-6 bg-primary shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:scale-105 active:scale-95 transition-all text-[#0d1c12] gap-3">
+<span class="material-symbols-outlined text-[#0d1c12]" style="font-size: 24px;">add</span>
+<span class="text-base font-bold whitespace-nowrap">Add New Book</span>
+</button>
+</div>
+<!-- Bottom Navigation -->
+<div class="fixed bottom-0 w-full bg-surface-light dark:bg-surface-dark border-t border-gray-100 dark:border-gray-800 px-6 py-2 flex justify-between items-center z-30 pb-6 pt-3">
+<button class="flex flex-col items-center gap-1 group">
+<span class="material-symbols-outlined text-gray-400 dark:text-gray-500 group-hover:text-primary transition-colors" style="font-size: 24px;">home</span>
+<span class="text-[10px] font-medium text-gray-400 dark:text-gray-500 group-hover:text-primary transition-colors">Home</span>
+</button>
+<button class="flex flex-col items-center gap-1">
+<span class="material-symbols-outlined text-primary" style="font-size: 24px;">library_books</span>
+<span class="text-[10px] font-medium text-primary">Library</span>
+</button>
+<button class="flex flex-col items-center gap-1 group">
+<span class="material-symbols-outlined text-gray-400 dark:text-gray-500 group-hover:text-primary transition-colors" style="font-size: 24px;">school</span>
+<span class="text-[10px] font-medium text-gray-400 dark:text-gray-500 group-hover:text-primary transition-colors">Students</span>
+</button>
+<button class="flex flex-col items-center gap-1 group">
+<span class="material-symbols-outlined text-gray-400 dark:text-gray-500 group-hover:text-primary transition-colors" style="font-size: 24px;">settings</span>
+<span class="text-[10px] font-medium text-gray-400 dark:text-gray-500 group-hover:text-primary transition-colors">Settings</span>
+</button>
+</div>
+</div>
+</body></html>

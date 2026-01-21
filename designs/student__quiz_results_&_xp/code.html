@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Student: Quiz Results &amp; XP</title>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#0df259",
+                        "background-light": "#f5f8f6",
+                        "background-dark": "#102216",
+                    },
+                    fontFamily: {
+                        "display": ["Lexend", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display min-h-screen relative overflow-x-hidden">
+<!-- Confetti Background Layer (Static) -->
+<div class="absolute inset-0 w-full h-full z-0 opacity-40 pointer-events-none" data-alt="Colorful confetti falling on a white background" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuB5IRnHxLtyJHP7O4YstGNegYRea4huhOXtdVVIK-rojKw9mzNkSP5E_LLmSMSonwEjfENWqL2PwCDUZi7gB6UoEX_VfcUj8VRPE7hpAx_x9zWzBorbQvAjcVFebSP0de34AWnZzHw8lAul74S03Dxzun0u71sURZdLii1qzf0MDL5XlxiHTa8Q1KAaytSbygXI9sZ1x00ODpUzf9Hb0ooxzdvw1p5U_bcFYzFpxeJUIf7L5_yXOOOvrhV9ULc37zcSFcdtjLmk_OU'); background-size: cover; background-position: center;">
+</div>
+<!-- Main Content Wrapper -->
+<div class="relative z-10 flex flex-col min-h-screen max-w-md mx-auto shadow-2xl bg-white/80 dark:bg-background-dark/90 backdrop-blur-sm">
+<!-- Top Navigation -->
+<div class="flex items-center justify-between p-4">
+<button class="flex items-center justify-center w-10 h-10 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
+<span class="material-symbols-outlined text-gray-800 dark:text-white" style="font-size: 24px;">close</span>
+</button>
+<h2 class="text-lg font-bold text-gray-800 dark:text-white">Quiz Complete</h2>
+<div class="w-10"></div> <!-- Spacer for centering -->
+</div>
+<!-- Scrollable Content -->
+<div class="flex-1 flex flex-col items-center overflow-y-auto px-6 pb-24 pt-4">
+<!-- Mascot Image -->
+<div class="w-40 h-40 mb-2 transition-transform hover:scale-105 duration-300">
+<div class="w-full h-full bg-contain bg-center bg-no-repeat" data-alt="Happy 3D cartoon trophy mascot jumping" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBNvLNsMdjd66MIledhivWeRMUNlUVvreFeaQxoptMyCFvfxtGA4f-Cg5e6i0VeXZ13BxIOGCL5Q0IO6_M7EmQYzUXfrn1THPNGwLyDk56hb1-WO6k_r64yupHx2QfGEoaMJohpnKus8J5oqx-OdQ9r-hodLeD9x4uN8RUY4fgqvYbrxiQjnr1aIo1PZSVSIojyPcyml7yKGVOIQNm1EBZP4z1dWyfuwTOASnmImWYpe4jG1psG8yStQ_NAmDp8TOEMrJNcr5v0nfQ');">
+</div>
+</div>
+<!-- Headline -->
+<h1 class="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-6 text-center tracking-tight">
+                Great Job!
+            </h1>
+<!-- Circular Score Display -->
+<div class="relative w-48 h-48 mb-8 flex items-center justify-center">
+<!-- Outer Circle Shadow/Bg -->
+<svg class="w-full h-full transform -rotate-90" viewbox="0 0 100 100">
+<circle class="text-gray-200 dark:text-gray-700" cx="50" cy="50" fill="transparent" r="40" stroke="currentColor" stroke-width="8"></circle>
+<!-- Progress Circle (90%) -->
+<!-- Circumference = 2 * pi * 40 ≈ 251.2 -->
+<!-- 90% of 251.2 ≈ 226 -->
+<!-- Dashoffset = 251.2 - 226 = 25.2 -->
+<circle class="text-primary transition-all duration-1000 ease-out" cx="50" cy="50" fill="transparent" r="40" stroke="currentColor" stroke-dasharray="251.2" stroke-dashoffset="25.2" stroke-linecap="round" stroke-width="8"></circle>
+</svg>
+<!-- Center Text -->
+<div class="absolute flex flex-col items-center">
+<span class="text-4xl font-extrabold text-gray-900 dark:text-white">90%</span>
+<span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mt-1">Score</span>
+</div>
+</div>
+<!-- Stats / Rewards Grid -->
+<div class="grid grid-cols-2 gap-4 w-full mb-8">
+<!-- XP Card -->
+<div class="bg-background-light dark:bg-gray-800 rounded-xl p-4 flex flex-col items-center text-center shadow-sm border border-gray-100 dark:border-gray-700">
+<div class="w-10 h-10 rounded-full bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center mb-2 text-yellow-600 dark:text-yellow-400">
+<span class="material-symbols-outlined">bolt</span>
+</div>
+<span class="text-xs font-medium text-gray-500 dark:text-gray-400">XP Earned</span>
+<span class="text-xl font-bold text-gray-900 dark:text-white">+50 XP</span>
+</div>
+<!-- Badges Card -->
+<div class="bg-background-light dark:bg-gray-800 rounded-xl p-4 flex flex-col items-center text-center shadow-sm border border-gray-100 dark:border-gray-700 relative overflow-hidden">
+<!-- New Badge Indicator -->
+<div class="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+<div class="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mb-2 text-blue-600 dark:text-blue-400">
+<span class="material-symbols-outlined">military_tech</span>
+</div>
+<span class="text-xs font-medium text-gray-500 dark:text-gray-400">Unlocked</span>
+<span class="text-xl font-bold text-gray-900 dark:text-white">Perfect!</span>
+</div>
+</div>
+<!-- Contextual Encouragement -->
+<p class="text-center text-gray-600 dark:text-gray-300 text-sm px-4 mb-4">
+                You've mastered the basics of Astronomy! Keep up the great work to unlock the next level.
+            </p>
+</div>
+<!-- Sticky Bottom Actions -->
+<div class="fixed bottom-0 left-0 right-0 max-w-md mx-auto p-4 bg-white/90 dark:bg-background-dark/90 backdrop-blur-md border-t border-gray-100 dark:border-gray-800 flex flex-col gap-3 z-20">
+<button class="w-full h-14 bg-primary hover:bg-green-400 active:bg-green-500 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-green-500/20 group">
+<span class="material-symbols-outlined text-background-dark">home</span>
+<span class="text-background-dark text-lg font-bold">Go Back Home</span>
+</button>
+<button class="w-full h-12 bg-transparent border-2 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl flex items-center justify-center gap-2 transition-all text-gray-600 dark:text-gray-300 font-semibold">
+<span class="material-symbols-outlined text-sm">history_edu</span>
+<span>Review Answers</span>
+</button>
+</div>
+</div>
+</body></html>

@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>FunLMS Kids - Student Badges</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+            extend: {
+                colors: {
+                "primary": "#0df259",
+                "background-light": "#f5f8f6",
+                "background-dark": "#102216",
+                "gold": "#FFD700",
+                },
+                fontFamily: {
+                "display": ["Plus Jakarta Sans", "sans-serif"]
+                },
+                borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "2xl": "2rem", "full": "9999px"},
+                boxShadow: {
+                    'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
+                    'glow': '0 0 15px rgba(13, 242, 89, 0.3)',
+                }
+            },
+            },
+        }
+    </script>
+<style>
+        /* Custom scrollbar hiding for clean UI */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark text-[#0d1c12] dark:text-[#e0eadd] font-display overflow-x-hidden antialiased selection:bg-primary/30">
+<div class="relative flex h-full min-h-screen w-full flex-col max-w-md mx-auto bg-background-light dark:bg-background-dark shadow-2xl overflow-hidden pb-20">
+<!-- Top App Bar -->
+<div class="sticky top-0 z-30 flex items-center bg-background-light/90 dark:bg-background-dark/90 backdrop-blur-md p-4 pb-2 justify-between">
+<button class="text-[#0d1c12] dark:text-white flex size-10 shrink-0 items-center justify-center rounded-full active:bg-gray-100 dark:active:bg-white/10 transition-colors">
+<span class="material-symbols-outlined text-2xl">arrow_back</span>
+</button>
+<h2 class="text-[#0d1c12] dark:text-white text-lg font-bold leading-tight tracking-[-0.015em] flex-1 text-center pr-10">My Trophy Case</h2>
+</div>
+<!-- Scrollable Content -->
+<div class="flex-1 overflow-y-auto w-full">
+<!-- Hero Card: Recent Achievement -->
+<div class="p-4 pt-2 w-full">
+<div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#e0ffe8] to-[#ffffff] dark:from-[#1a3824] dark:to-[#102216] border border-primary/20 shadow-soft group">
+<!-- Confetti decoration background -->
+<div class="absolute inset-0 opacity-10 dark:opacity-5 bg-[url('https://www.transparenttextures.com/patterns/confetti.png')]"></div>
+<div class="relative flex flex-col sm:flex-row items-center p-5 gap-4">
+<div class="shrink-0 relative">
+<div class="absolute inset-0 bg-yellow-400 rounded-full blur-xl opacity-20 animate-pulse"></div>
+<div class="w-20 h-20 bg-center bg-no-repeat bg-cover rounded-full border-4 border-white dark:border-[#2a4533] shadow-md relative z-10" data-alt="Colorful illustration of an open book with wings symbolizing the Super Reader badge" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCOMKM8XyLh0F_DERisf_0GMYh3fZ7kjodH5vFlseyIBMSLVdy0X0S_JlNjyQcXjn2wIWtPIO-fdgwwAA4zLpmhyGqe9eGfuNQbBV1aDZ0rm8pr9_e3QaMU-Sa-N2vHPYOYs2rEHhkzdZ2PdzS06bU_eAtMdxNHXIEsIHXoj8pHL4y-siRyFWEeVIEmUcnaBnf3RLV8PWyin9IySqqTchlCKU6Q0U_wBLMnzZrRvMPHRQw3eLgagLudSuNCaz-lPJvshlbee3POqMM");'></div>
+<div class="absolute -bottom-2 -right-2 bg-primary text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-sm z-20">NEW!</div>
+</div>
+<div class="flex flex-col items-center sm:items-start text-center sm:text-left gap-1">
+<p class="text-primary font-bold text-xs uppercase tracking-wider">Recent Achievement</p>
+<h3 class="text-xl font-extrabold text-[#0d1c12] dark:text-white leading-tight">You did it!</h3>
+<p class="text-sm text-gray-600 dark:text-gray-300 font-medium">You earned the <span class="text-primary font-bold">Super Reader</span> badge!</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Chips / Filters -->
+<div class="flex gap-2 px-4 py-2 overflow-x-auto no-scrollbar w-full mask-linear">
+<button class="flex h-9 shrink-0 items-center justify-center gap-x-1.5 rounded-full bg-[#0d1c12] dark:bg-white px-4 transition-transform active:scale-95 shadow-md">
+<p class="text-white dark:text-[#0d1c12] text-sm font-bold leading-normal">All</p>
+</button>
+<button class="flex h-9 shrink-0 items-center justify-center gap-x-1.5 rounded-full bg-white dark:bg-[#1f3625] px-4 border border-gray-100 dark:border-white/10 transition-transform active:scale-95 shadow-sm">
+<span class="material-symbols-outlined text-[18px] text-orange-500">calculate</span>
+<p class="text-[#0d1c12] dark:text-gray-200 text-sm font-semibold leading-normal">Math</p>
+</button>
+<button class="flex h-9 shrink-0 items-center justify-center gap-x-1.5 rounded-full bg-white dark:bg-[#1f3625] px-4 border border-gray-100 dark:border-white/10 transition-transform active:scale-95 shadow-sm">
+<span class="material-symbols-outlined text-[18px] text-blue-500">menu_book</span>
+<p class="text-[#0d1c12] dark:text-gray-200 text-sm font-semibold leading-normal">Reading</p>
+</button>
+<button class="flex h-9 shrink-0 items-center justify-center gap-x-1.5 rounded-full bg-white dark:bg-[#1f3625] px-4 border border-gray-100 dark:border-white/10 transition-transform active:scale-95 shadow-sm">
+<span class="material-symbols-outlined text-[18px] text-purple-500">science</span>
+<p class="text-[#0d1c12] dark:text-gray-200 text-sm font-semibold leading-normal">Science</p>
+</button>
+<button class="flex h-9 shrink-0 items-center justify-center gap-x-1.5 rounded-full bg-white dark:bg-[#1f3625] px-4 border border-gray-100 dark:border-white/10 transition-transform active:scale-95 shadow-sm">
+<span class="material-symbols-outlined text-[18px] text-pink-500">palette</span>
+<p class="text-[#0d1c12] dark:text-gray-200 text-sm font-semibold leading-normal">Art</p>
+</button>
+</div>
+<!-- Section Header -->
+<div class="flex items-end justify-between px-4 pb-2 pt-6">
+<h2 class="text-[#0d1c12] dark:text-white text-xl font-bold leading-tight">All Badges</h2>
+<span class="text-xs font-bold text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-white/5 px-2 py-1 rounded-md">12/20 Unlocked</span>
+</div>
+<!-- Grid -->
+<div class="grid grid-cols-2 gap-4 p-4 pb-8">
+<!-- Unlocked Item 1 -->
+<div class="flex flex-col items-center p-4 rounded-2xl bg-white dark:bg-[#1A2C20] border-2 border-gold shadow-md relative overflow-hidden group hover:shadow-lg transition-all">
+<div class="absolute -right-8 -top-8 w-16 h-16 bg-gold/20 rounded-full blur-xl group-hover:bg-gold/40 transition-all"></div>
+<div class="w-20 h-20 bg-center bg-no-repeat bg-cover rounded-full mb-3 shadow-sm ring-4 ring-gold/20" data-alt="Golden star icon with mathematical symbols floating around representing math mastery" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuB2b4KZOsenB60j-UlTY6m5lZNs_q2zdsjC_ijSIejTkgQToa-11Ow6gcH1IP3snPdRMB7iMAmgvY50AC9aRXhTW9HPhPxJuzupY9roobnggmP75z8zqr_A8KnlEUobTojuEt2oZWz1qDO6Ra51VqgAyFc-BMJbv4X5Uxrl3G6UesOEiQBXfpVDSfPvyi1DSKdnv_fFsTDOnlQgZiwot9QEdefKsHd4otERbgpyf607GoGhozMxPl-rRQFW5FOSQKXuJGcbZF0ymQM");'></div>
+<div class="text-center w-full">
+<p class="text-[#0d1c12] dark:text-white text-base font-bold leading-tight mb-1">Math Star</p>
+<div class="inline-flex items-center gap-1 bg-yellow-50 dark:bg-yellow-900/20 px-2 py-0.5 rounded-full border border-yellow-100 dark:border-yellow-900/30">
+<span class="material-symbols-outlined text-gold text-[14px]">stars</span>
+<span class="text-gold text-xs font-bold uppercase tracking-wide">Unlocked</span>
+</div>
+</div>
+</div>
+<!-- Unlocked Item 2 -->
+<div class="flex flex-col items-center p-4 rounded-2xl bg-white dark:bg-[#1A2C20] border-2 border-gold shadow-md relative overflow-hidden group hover:shadow-lg transition-all">
+<div class="absolute -left-8 -top-8 w-16 h-16 bg-gold/20 rounded-full blur-xl group-hover:bg-gold/40 transition-all"></div>
+<div class="w-20 h-20 bg-center bg-no-repeat bg-cover rounded-full mb-3 shadow-sm ring-4 ring-gold/20" data-alt="Stylized sunrise icon representing early completion of tasks" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDRMKLdwzkl-a_j-thK03CJJcJWfiril2R5Mms7TvQy7esAVCDbeVD6Ne4gGImgxwplx6eooscrBqPzWdz9aq4wCoynoeFgO6rjogj2LszlLs3ErSGqz4ijTNDJ0NT7ei7wUJSsWTPJ6sL5wTOaJj8fVHV6aQVxujGwUOVBuenq1cXnN8_J78IytWgihR150fCaOmczIcl6AkhsWvl9vgxyvejOj749SBUJw7KGbP879pq0OSnj8sPBIG8BYMDaS0aNKRbk00r7Vc8");'></div>
+<div class="text-center w-full">
+<p class="text-[#0d1c12] dark:text-white text-base font-bold leading-tight mb-1">Early Bird</p>
+<div class="inline-flex items-center gap-1 bg-yellow-50 dark:bg-yellow-900/20 px-2 py-0.5 rounded-full border border-yellow-100 dark:border-yellow-900/30">
+<span class="material-symbols-outlined text-gold text-[14px]">stars</span>
+<span class="text-gold text-xs font-bold uppercase tracking-wide">Unlocked</span>
+</div>
+</div>
+</div>
+<!-- Unlocked Item 3 -->
+<div class="flex flex-col items-center p-4 rounded-2xl bg-white dark:bg-[#1A2C20] border-2 border-gold shadow-md relative overflow-hidden group hover:shadow-lg transition-all">
+<div class="w-20 h-20 bg-center bg-no-repeat bg-cover rounded-full mb-3 shadow-sm ring-4 ring-gold/20" data-alt="Two hands shaking or helping each other icon representing helpfulness" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDAa2A30bmRRmfYJ9_WgtcYXIfpNXmBbgtjI0yH_Y8KxmJbt4aRAh2mb35JuFLw4MSAup-YWnN40fWAAAyaHw3zAHAs9my6tNZO1CmE_jH77qzByaWkItGl_DunB2-KKWUXvssB52MMkRn31W9Ft9TNc4Sey_Drq-phv4zA8stnNLBR2WB6wxkfcVAi0hVpwYx5GWzwwW8BYoy4BP1_Z8bzYHKKKsMgxgRSktAs15n6RTnY48TRP1EZL972gdDBQobmQip0m27czDc");'></div>
+<div class="text-center w-full">
+<p class="text-[#0d1c12] dark:text-white text-base font-bold leading-tight mb-1">Helper Hand</p>
+<div class="inline-flex items-center gap-1 bg-yellow-50 dark:bg-yellow-900/20 px-2 py-0.5 rounded-full border border-yellow-100 dark:border-yellow-900/30">
+<span class="material-symbols-outlined text-gold text-[14px]">stars</span>
+<span class="text-gold text-xs font-bold uppercase tracking-wide">Unlocked</span>
+</div>
+</div>
+</div>
+<!-- Locked Item 1 -->
+<div class="flex flex-col items-center p-4 rounded-2xl bg-gray-50 dark:bg-[#16291d] border-2 border-transparent relative overflow-hidden opacity-90">
+<div class="relative w-20 h-20 mb-3">
+<div class="w-full h-full bg-center bg-no-repeat bg-cover rounded-full grayscale opacity-40" data-alt="Microscope and flask icons representing science experiments" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAtMwvZkp4ZeCx1haMl38dBQPdUWKrPQxxb-4Y4KlJwWWl_NqdTqjwZ-7K_mZPTzMA-cbqyZJ1HQW8F051IMSwNalkdji5Za941VBtcQgRHZ-pMYMVcVGiIAyUmoZNBe1nYAOi7kRm7ih55d1gBKSptxCYP1HYRdYC_mOOvkH6Z10bcQ16jne3Nocj7DxlCZTz_vc-7nGuvvS9e-M9kx2zBy_XjB68BimbYt7XUht3_rlAhe8Og8m9kaLTWdogxssdezptJPj3l2os");'></div>
+<div class="absolute inset-0 flex items-center justify-center">
+<div class="bg-white/80 dark:bg-black/60 rounded-full p-2 backdrop-blur-sm shadow-sm">
+<span class="material-symbols-outlined text-gray-500 dark:text-gray-300 text-2xl">lock</span>
+</div>
+</div>
+</div>
+<div class="text-center w-full flex flex-col gap-2">
+<p class="text-gray-500 dark:text-gray-400 text-base font-bold leading-tight">Science Pro</p>
+<!-- Progress Bar -->
+<div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
+<div class="bg-primary h-3 rounded-full" style="width: 60%"></div>
+</div>
+<p class="text-primary text-xs font-bold">Progress: 3/5</p>
+</div>
+</div>
+<!-- Locked Item 2 -->
+<div class="flex flex-col items-center p-4 rounded-2xl bg-gray-50 dark:bg-[#16291d] border-2 border-transparent relative overflow-hidden opacity-90">
+<div class="relative w-20 h-20 mb-3">
+<div class="w-full h-full bg-center bg-no-repeat bg-cover rounded-full grayscale opacity-40" data-alt="Calendar with checkmarks representing a streak of attendance" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBvshUyCw1Rft3llBfP6YSA7_7aUiGjlJ8OtyteimsDlwU3qEdCqz1_JumO4NlC4kXMUwmHJrwuUMX85T0FexK8Q6dLbI4ZDMJhT3arDoGjN2BHkMiC98g5SyQ1SpSwXeIvRVbnP_1FY54fGAKdbt4drDTviVHKzhTk6KH1Zad7wIy5MALG5UYyr0dGLoORclu_sbYYjOgXRDgrbrL-mujGYVsylOx6pyxwPwmfs5SxmRJYCqBxx0V7XCsleY_bRizvuwivaH_wA6M");'></div>
+<div class="absolute inset-0 flex items-center justify-center">
+<div class="bg-white/80 dark:bg-black/60 rounded-full p-2 backdrop-blur-sm shadow-sm">
+<span class="material-symbols-outlined text-gray-500 dark:text-gray-300 text-2xl">lock</span>
+</div>
+</div>
+</div>
+<div class="text-center w-full flex flex-col gap-2">
+<p class="text-gray-500 dark:text-gray-400 text-base font-bold leading-tight">Perfect Week</p>
+<!-- Progress Bar -->
+<div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
+<div class="bg-primary h-3 rounded-full" style="width: 20%"></div>
+</div>
+<p class="text-primary text-xs font-bold">Progress: 1/5</p>
+</div>
+</div>
+<!-- Locked Item 3 -->
+<div class="flex flex-col items-center p-4 rounded-2xl bg-gray-50 dark:bg-[#16291d] border-2 border-transparent relative overflow-hidden opacity-90">
+<div class="relative w-20 h-20 mb-3">
+<div class="w-full h-full bg-center bg-no-repeat bg-cover rounded-full grayscale opacity-40" data-alt="Palette and brush icons representing art skills" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDv_mg-WHqRJ2DfHk8vFYtWjT9G8gMUG9-bkqr-f2g_OaRho-KCKJeqfNBDavMMFVAAP1gPWFC5ChZjxpkp_EmL-ziV_ZaNK2Lpt8sT69qutRT2nGer58vVfgtmBNjNhKQG8Y7LVAs76X-MYwwM3DSmV26do00tI3_GHgpgN9KrUp6Uv8SEpIjJaQxIFDwJ3UAfbeWrKxG7b2_OZT1TkaGRvyQz5aUZBaQH6_3H4MXRTC8lQpK3h4MhMiclDRI7cr6tKC6UxUOH-CA");'></div>
+<div class="absolute inset-0 flex items-center justify-center">
+<div class="bg-white/80 dark:bg-black/60 rounded-full p-2 backdrop-blur-sm shadow-sm">
+<span class="material-symbols-outlined text-gray-500 dark:text-gray-300 text-2xl">lock</span>
+</div>
+</div>
+</div>
+<div class="text-center w-full flex flex-col gap-2">
+<p class="text-gray-500 dark:text-gray-400 text-base font-bold leading-tight">Art Master</p>
+<!-- Progress Bar -->
+<div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
+<div class="bg-primary h-3 rounded-full" style="width: 66%"></div>
+</div>
+<p class="text-primary text-xs font-bold">Progress: 2/3</p>
+</div>
+</div>
+</div>
+<div class="h-20"></div> <!-- Spacer for bottom nav -->
+</div>
+<!-- Bottom Navigation Bar -->
+<div class="absolute bottom-0 w-full bg-white dark:bg-[#16291d] border-t border-gray-100 dark:border-white/5 pb-5 pt-3 px-6 shadow-[0_-5px_20px_-5px_rgba(0,0,0,0.05)]">
+<div class="flex items-center justify-between">
+<button class="flex flex-col items-center gap-1 group">
+<span class="material-symbols-outlined text-gray-400 group-hover:text-primary transition-colors text-2xl">home</span>
+<span class="text-[10px] font-bold text-gray-400 group-hover:text-primary">Home</span>
+</button>
+<button class="flex flex-col items-center gap-1 group">
+<span class="material-symbols-outlined text-gray-400 group-hover:text-primary transition-colors text-2xl">school</span>
+<span class="text-[10px] font-bold text-gray-400 group-hover:text-primary">Lessons</span>
+</button>
+<button class="flex flex-col items-center gap-1 group relative">
+<!-- Active Indicator -->
+<div class="absolute -top-3 w-10 h-1 bg-primary rounded-full shadow-[0_0_10px_#0df259]"></div>
+<span class="material-symbols-outlined text-primary text-2xl">emoji_events</span>
+<span class="text-[10px] font-bold text-primary">Badges</span>
+</button>
+<button class="flex flex-col items-center gap-1 group">
+<span class="material-symbols-outlined text-gray-400 group-hover:text-primary transition-colors text-2xl">person</span>
+<span class="text-[10px] font-bold text-gray-400 group-hover:text-primary">Profile</span>
+</button>
+</div>
+</div>
+</div>
+</body></html>

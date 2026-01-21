@@ -225,6 +225,7 @@ function GameCreator({ template, classes, subjects, userId, onBack, onSave }) {
         classIds: [],
         gameType: template.id,
         gameData: getInitialGameData(),
+        maxPlays: 0, // 0 = unlimited
     });
 
     // Safely get items array
@@ -330,6 +331,19 @@ function GameCreator({ template, classes, subjects, userId, onBack, onSave }) {
                             <option key={s.id} value={s.id}>{s.emoji} {s.name}</option>
                         ))}
                     </select>
+                </div>
+
+                <div>
+                    <label className="block text-sm font-medium text-text-main mb-1">Play Limit (0 = unlimited)</label>
+                    <input
+                        type="number"
+                        min="0"
+                        value={formData.maxPlays}
+                        onChange={(e) => setFormData({ ...formData, maxPlays: parseInt(e.target.value) || 0 })}
+                        placeholder="0"
+                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary outline-none"
+                    />
+                    <p className="text-xs text-text-muted mt-1">How many times each student can play this game</p>
                 </div>
 
                 {/* Match Pairs Editor */}
@@ -635,8 +649,8 @@ function GamePreview({ game, template, onBack }) {
                             key={card.id}
                             onClick={() => handleFlip(card)}
                             className={`aspect-square rounded-xl flex items-center justify-center text-sm p-2 transition-all ${isMatched ? 'bg-green-100 border-2 border-green-500' :
-                                    isFlipped ? 'bg-white border-2 border-primary' :
-                                        'bg-primary/20 border-2 border-transparent'
+                                isFlipped ? 'bg-white border-2 border-primary' :
+                                    'bg-primary/20 border-2 border-transparent'
                                 }`}
                         >
                             {isFlipped || isMatched ? (

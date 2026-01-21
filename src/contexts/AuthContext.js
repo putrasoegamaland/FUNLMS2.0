@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import storage, { seedInitialData } from '@/lib/storage';
+import storage from '@/lib/storage';
 
 const AuthContext = createContext(null);
 
@@ -11,7 +11,7 @@ export function AuthProvider({ children }) {
 
     // Initialize - check for existing session
     useEffect(() => {
-        seedInitialData(); // Seed demo data on first load
+        // Demo data seeding removed - users should create their own data
 
         const savedUser = localStorage.getItem('funlms_current_user');
         if (savedUser) {

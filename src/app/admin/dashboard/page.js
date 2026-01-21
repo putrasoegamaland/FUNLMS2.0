@@ -4,6 +4,22 @@ import { useEffect, useState } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import storage from '@/lib/storage';
 
+// Helper function for relative time
+function getTimeAgo(dateString) {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    return `${diffDays}d ago`;
+}
+
 export default function AdminDashboard() {
     const { t } = useLanguage();
     const [stats, setStats] = useState({ students: 0, teachers: 0, classes: 0 });
@@ -20,12 +36,26 @@ export default function AdminDashboard() {
             classes: classes.length,
         });
 
-        // Mock recent activity
-        setRecentActivity([
-            { id: 1, type: 'user', icon: 'person_add', title: 'New Student Registration', desc: 'Leo joined the platform', time: '2m ago', color: 'orange' },
-            { id: 2, type: 'class', icon: 'class', title: 'Class Created', desc: 'Grade 1A was created', time: '1h ago', color: 'blue' },
-            { id: 3, type: 'system', icon: 'backup', title: 'System Backup', desc: 'Daily backup completed', time: '3h ago', color: 'gray' },
-        ]);
+        // Load real recent activity from attempts and submissions
+        const attempts = storage.attempts?.getAll?.() || [];
+        const recentAttempts = attempts
+            .sort((a, b) => new Date(b.completedAt || b.createdAt) - new Date(a.completedAt || a.createdAt))
+            .slice(0, 5)
+            .map((attempt, i) => {
+                const student = storage.users.getById(attempt.studentId);
+                const quiz = storage.assessments.getById(attempt.assessmentId);
+                const timeAgo = getTimeAgo(attempt.completedAt || attempt.createdAt);
+                return {
+                    id: attempt.id || i,
+                    type: 'quiz',
+                    icon: 'quiz',
+                    title: student?.name || 'Student',
+                    desc: `Completed ${quiz?.title || 'a quiz'}`,
+                    time: timeAgo,
+                    color: 'green'
+                };
+            });
+        setRecentActivity(recentAttempts.length > 0 ? recentAttempts : []);
     }, []);
 
     return (

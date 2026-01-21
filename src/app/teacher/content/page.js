@@ -117,12 +117,20 @@ export default function TeacherContentPage() {
                         {[
                             { type: 'multiple_choice', icon: '📝', label: 'Multiple Choice Quiz', desc: 'Quick auto-graded questions' },
                             { type: 'essay', icon: '✏️', label: 'Essay / Short Answer', desc: 'Open-ended responses' },
+                            { type: 'drawing', icon: '🎨', label: 'Drawing Quiz', desc: 'Students answer with drawings' },
                             { type: 'written_exam', icon: '📋', label: 'Written Exam', desc: 'Exam mode with tab lock' },
                         ].map((item) => (
                             <button
                                 key={item.type}
                                 onClick={() => {
                                     setAssessmentType(item.type);
+                                    // Auto-enable drawing for drawing quiz type
+                                    if (item.type === 'drawing') {
+                                        setFormData(prev => ({
+                                            ...prev,
+                                            settings: { ...prev.settings, allowImageAnswer: true }
+                                        }));
+                                    }
                                     setStep('questions');
                                     if (formData.questions.length === 0) addQuestion();
                                 }}

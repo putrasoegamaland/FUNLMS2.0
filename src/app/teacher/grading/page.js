@@ -24,26 +24,52 @@ export default function TeacherGradingPage() {
 
         const assessmentIds = teacherAssessments.map(a => a.id);
 
-        let filtered = allAttempts.filter(attempt =>
+        let attemptItems = allAttempts.filter(attempt =>
             assessmentIds.includes(attempt.assessmentId)
         );
 
+        // Also get assignment submissions
+        const allSubmissions = storage.submissions?.getAll?.() || [];
+        const teacherAssignments = storage.assignments?.getAll?.().filter(a => a.createdBy === user?.id) || [];
+        const assignmentIds = teacherAssignments.map(a => a.id);
+
+        let assignmentSubmissions = allSubmissions.filter(sub =>
+            assignmentIds.includes(sub.assignmentId)
+        ).map(sub => ({
+            ...sub,
+            isAssignment: true,
+            completedAt: sub.submittedAt || sub.createdAt,
+        }));
+
+        // Combine both types
+        let allItems = [...attemptItems, ...assignmentSubmissions];
+
         if (filter === 'pending') {
-            filtered = filtered.filter(a => !a.teacherScore && a.teacherScore !== 0);
+            allItems = allItems.filter(a => !a.teacherScore && a.teacherScore !== 0);
         } else if (filter === 'graded') {
-            filtered = filtered.filter(a => a.teacherScore !== undefined);
+            allItems = allItems.filter(a => a.teacherScore !== undefined);
         }
 
-        // Enrich with student and assessment info
-        const enriched = filtered.map(attempt => {
-            const student = storage.users.getById(attempt.studentId);
-            const assessment = storage.assessments.getById(attempt.assessmentId);
-            return {
-                ...attempt,
-                studentName: student?.name || 'Unknown',
-                assessmentTitle: assessment?.title || 'Unknown Quiz',
-                assessmentType: assessment?.type,
-            };
+        // Enrich with student and assessment/assignment info
+        const enriched = allItems.map(item => {
+            const student = storage.users.getById(item.studentId);
+            if (item.isAssignment) {
+                const assignment = storage.assignments.getById(item.assignmentId);
+                return {
+                    ...item,
+                    studentName: student?.name || 'Unknown',
+                    assessmentTitle: assignment?.title || 'Unknown Assignment',
+                    assessmentType: 'assignment',
+                };
+            } else {
+                const assessment = storage.assessments.getById(item.assessmentId);
+                return {
+                    ...item,
+                    studentName: student?.name || 'Unknown',
+                    assessmentTitle: assessment?.title || 'Unknown Quiz',
+                    assessmentType: assessment?.type,
+                };
+            }
         });
 
         setPendingSubmissions(enriched);
@@ -58,13 +84,20 @@ export default function TeacherGradingPage() {
             return;
         }
 
-        storage.attempts.update(selectedSubmission.id, {
+        const gradeData = {
             teacherScore: numScore,
             teacherFeedback: feedback,
             gradedAt: new Date().toISOString(),
             gradedBy: user?.id,
-            score: numScore, // Also update main score
-        });
+            score: numScore,
+        };
+
+        // Use appropriate storage based on item type
+        if (selectedSubmission.isAssignment) {
+            storage.submissions.update(selectedSubmission.id, gradeData);
+        } else {
+            storage.attempts.update(selectedSubmission.id, gradeData);
+        }
 
         setSelectedSubmission(null);
         setScore('');
@@ -211,8 +244,8 @@ export default function TeacherGradingPage() {
                             className="w-full flex items-center gap-4 p-4 rounded-xl bg-card-light border border-gray-100 text-left hover:border-primary transition-colors"
                         >
                             <div className={`w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold ${submission.teacherScore !== undefined
-                                    ? 'bg-green-100 text-green-600'
-                                    : 'bg-orange-100 text-orange-600'
+                                ? 'bg-green-100 text-green-600'
+                                : 'bg-orange-100 text-orange-600'
                                 }`}>
                                 {submission.teacherScore !== undefined
                                     ? submission.teacherScore

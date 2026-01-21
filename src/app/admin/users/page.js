@@ -70,8 +70,8 @@ export default function AdminUsersPage() {
                         key={f}
                         onClick={() => setFilter(f)}
                         className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${filter === f
-                                ? 'bg-primary text-white'
-                                : 'bg-gray-100 text-text-muted hover:bg-gray-200'
+                            ? 'bg-primary text-white'
+                            : 'bg-gray-100 text-text-muted hover:bg-gray-200'
                             }`}
                     >
                         {f === 'all' ? 'All' : f.charAt(0).toUpperCase() + f.slice(1)}s
@@ -184,9 +184,10 @@ function UserModal({ user, onClose, onSave }) {
     };
 
     return (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center">
-            <div className="w-full max-w-md bg-white rounded-t-3xl p-6 animate-slide-up">
-                <div className="flex items-center justify-between mb-6">
+        <div className="fixed inset-0 bg-black/50 z-[100] flex items-end justify-center">
+            <div className="w-full max-w-md bg-white rounded-t-3xl flex flex-col max-h-[85vh]">
+                {/* Header */}
+                <div className="flex items-center justify-between p-6 pb-4 shrink-0">
                     <h3 className="text-lg font-bold text-text-main">
                         {user ? 'Edit User' : 'Create User'}
                     </h3>
@@ -195,73 +196,80 @@ function UserModal({ user, onClose, onSave }) {
                     </button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <div>
-                        <label className="block text-sm font-medium text-text-main mb-1">Name</label>
-                        <input
-                            type="text"
-                            value={formData.name}
-                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                            className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary outline-none"
-                            required
-                        />
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-text-main mb-1">Username</label>
-                        <input
-                            type="text"
-                            value={formData.username}
-                            onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                            className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary outline-none"
-                            required
-                        />
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-text-main mb-1">Password</label>
-                        <input
-                            type="text"
-                            value={formData.password}
-                            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                            className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary outline-none"
-                            required
-                        />
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-text-main mb-1">Role</label>
-                        <select
-                            value={formData.role}
-                            onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                            className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary outline-none"
-                        >
-                            <option value="student">Student</option>
-                            <option value="teacher">Teacher</option>
-                            <option value="admin">Admin</option>
-                        </select>
-                    </div>
-
-                    {formData.role === 'student' && (
+                {/* Scrollable Content */}
+                <div className="flex-1 overflow-y-auto px-6">
+                    <form id="user-form" onSubmit={handleSubmit} className="space-y-4 pb-4">
                         <div>
-                            <label className="block text-sm font-medium text-text-main mb-1">Generation</label>
+                            <label className="block text-sm font-medium text-text-main mb-1">Name</label>
                             <input
                                 type="text"
-                                value={formData.generation}
-                                onChange={(e) => setFormData({ ...formData, generation: e.target.value })}
+                                value={formData.name}
+                                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                                 className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary outline-none"
-                                placeholder="e.g. 2025"
+                                required
                             />
                         </div>
-                    )}
 
+                        <div>
+                            <label className="block text-sm font-medium text-text-main mb-1">Username</label>
+                            <input
+                                type="text"
+                                value={formData.username}
+                                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary outline-none"
+                                required
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-text-main mb-1">Password</label>
+                            <input
+                                type="text"
+                                value={formData.password}
+                                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary outline-none"
+                                required
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-text-main mb-1">Role</label>
+                            <select
+                                value={formData.role}
+                                onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary outline-none"
+                            >
+                                <option value="student">Student</option>
+                                <option value="teacher">Teacher</option>
+                                <option value="admin">Admin</option>
+                            </select>
+                        </div>
+
+                        {formData.role === 'student' && (
+                            <div>
+                                <label className="block text-sm font-medium text-text-main mb-1">Generation</label>
+                                <input
+                                    type="text"
+                                    value={formData.generation}
+                                    onChange={(e) => setFormData({ ...formData, generation: e.target.value })}
+                                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary outline-none"
+                                    placeholder="e.g. 2025"
+                                />
+                            </div>
+                        )}
+                    </form>
+                </div>
+
+                {/* Sticky Footer */}
+                <div className="p-6 pt-4 border-t border-gray-100 shrink-0">
                     <button
                         type="submit"
+                        form="user-form"
                         className="w-full py-3 bg-primary text-white font-bold rounded-xl hover:opacity-90 transition-opacity"
                     >
                         {user ? 'Update User' : 'Create User'}
                     </button>
-                </form>
+                </div>
             </div>
         </div>
     );

@@ -4,6 +4,22 @@ import { useEffect, useState } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import storage from '@/lib/storage';
 
+// Helper function for relative time
+function getTimeAgo(dateString) {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    return `${diffDays}d ago`;
+}
+
 export default function TeacherDashboard() {
     const { t } = useLanguage();
     const [stats, setStats] = useState({ classes: 0, studentsPresent: 0, totalStudents: 0, booksUploaded: 0 });
@@ -14,18 +30,35 @@ export default function TeacherDashboard() {
         const books = storage.books.getAll();
         const enrollments = storage.enrollments.getAll();
 
+        // Calculate real student count from enrollments
+        const totalStudents = new Set(enrollments.map(e => e.studentId)).size;
+
         setStats({
             classes: classes.length,
-            studentsPresent: 24,
-            totalStudents: 28,
+            studentsPresent: totalStudents, // Real enrolled students
+            totalStudents: totalStudents,
             booksUploaded: books.length,
         });
 
-        setRecentActivity([
-            { id: 1, icon: '✅', title: 'Liam completed', highlight: 'Dino Math', desc: '2 mins ago • Quiz Score: 10/10', color: 'green' },
-            { id: 2, icon: '🏆', title: 'Sophia earned', highlight: 'Bookworm badge!', desc: '15 mins ago • Reading Challenge', color: 'orange' },
-            { id: 3, icon: '📝', title: 'Noah submitted homework', highlight: '', desc: '1 hour ago • Science Project', color: 'blue' },
-        ]);
+        // Load real recent activity from attempts
+        const attempts = storage.attempts?.getAll?.() || [];
+        const recentAttempts = attempts
+            .sort((a, b) => new Date(b.completedAt || b.createdAt) - new Date(a.completedAt || a.createdAt))
+            .slice(0, 5)
+            .map((attempt, i) => {
+                const student = storage.users.getById(attempt.studentId);
+                const quiz = storage.assessments.getById(attempt.assessmentId);
+                const timeAgo = getTimeAgo(attempt.completedAt || attempt.createdAt);
+                return {
+                    id: attempt.id || i,
+                    icon: '✅',
+                    title: `${student?.name || 'Student'} completed`,
+                    highlight: quiz?.title || 'a quiz',
+                    desc: timeAgo,
+                    color: 'green'
+                };
+            });
+        setRecentActivity(recentAttempts.length > 0 ? recentAttempts : []);
     }, []);
 
     return (

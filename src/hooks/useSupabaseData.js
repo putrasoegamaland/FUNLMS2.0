@@ -15,6 +15,9 @@ function useSupabaseQuery(tableName, options = {}) {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
+    // Create a stable key for the filter to avoid infinite loops
+    const filterKey = JSON.stringify(filter);
+
     const refetch = useCallback(async () => {
         if (!enabled || !isSupabaseConfigured() || !supabase) {
             setLoading(false);
@@ -29,7 +32,10 @@ function useSupabaseQuery(tableName, options = {}) {
 
             if (filter) {
                 Object.entries(filter).forEach(([key, value]) => {
-                    query = query.eq(key, value);
+                    // Skip undefined values
+                    if (value !== undefined && value !== null) {
+                        query = query.eq(key, value);
+                    }
                 });
             }
 
@@ -48,7 +54,7 @@ function useSupabaseQuery(tableName, options = {}) {
         } finally {
             setLoading(false);
         }
-    }, [tableName, filter, orderBy, orderAsc, enabled]);
+    }, [tableName, filterKey, orderBy, orderAsc, enabled]);
 
     useEffect(() => {
         refetch();

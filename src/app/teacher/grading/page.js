@@ -46,11 +46,15 @@ export default function TeacherGradingPage() {
                 };
             });
 
-        // Essay/written exam attempts for teacher's assessments
-        const teacherAssessments = assessments.filter(a =>
-            classIds.includes(a.class_id) && (a.type === 'essay' || a.type === 'written_exam')
+        // Essay/written exam/drawing attempts - show all that need manual grading
+        const manualGradeAssessments = assessments.filter(a =>
+            ['essay', 'written_exam', 'drawing'].includes(a.type)
         );
-        const assessmentIds = teacherAssessments.map(a => a.id);
+        const assessmentIds = manualGradeAssessments.map(a => a.id);
+
+        // Debug logging
+        console.log('Manual grade assessments:', manualGradeAssessments.length);
+        console.log('All attempts:', attempts.length);
 
         let attemptItems = attempts
             .filter(attempt => assessmentIds.includes(attempt.assessment_id))
@@ -65,8 +69,11 @@ export default function TeacherGradingPage() {
                     assessmentTitle: assessment?.title || 'Unknown Quiz',
                     assessmentType: assessment?.type,
                     teacherScore: attempt.teacher_score,
+                    assessment // Pass full assessment for question lookup
                 };
             });
+
+        console.log('Filtered attempt items:', attemptItems.length);
 
         let allItems = [...attemptItems, ...assignmentSubmissions];
 
@@ -152,22 +159,34 @@ export default function TeacherGradingPage() {
                 {/* Student Answers */}
                 <div className="bg-card-light rounded-xl p-4 border border-gray-100 space-y-4">
                     <h4 className="font-bold text-text-main">📝 Student's Answers</h4>
-                    {selectedSubmission.answers && Object.entries(selectedSubmission.answers).map(([qId, answer], i) => (
-                        <div key={qId} className="border-b border-gray-100 pb-3 last:border-0">
-                            <p className="text-sm font-medium text-text-muted mb-1">Question {i + 1}</p>
-                            <div className="bg-gray-50 rounded-lg p-3">
-                                {typeof answer === 'string' ? (
-                                    answer.startsWith('data:image') ? (
-                                        <img src={answer} alt="Answer" className="max-h-40 rounded" />
-                                    ) : (
-                                        <p className="text-text-main whitespace-pre-wrap">{answer}</p>
-                                    )
-                                ) : (
-                                    <p className="text-text-muted italic">No answer provided</p>
+                    {selectedSubmission.answers && Object.entries(selectedSubmission.answers).map(([qId, answer], i) => {
+                        const question = selectedSubmission.assessment?.questions?.find(q => q.id === qId);
+
+                        return (
+                            <div key={qId} className="border-b border-gray-100 pb-3 last:border-0">
+                                <p className="text-sm font-bold text-text-main mb-1">
+                                    Question {i + 1}: {question?.prompt || 'Unknown Question'}
+                                </p>
+                                {question?.promptImage && (
+                                    <img src={question.promptImage} alt="Prompt" className="max-h-24 rounded mb-2 opacity-80" />
                                 )}
+                                <div className="bg-gray-50 rounded-lg p-3">
+                                    {typeof answer === 'string' ? (
+                                        answer.startsWith('data:image') ? (
+                                            <div className="space-y-2">
+                                                <img src={answer} alt="Answer" className="max-h-60 rounded border border-gray-200 bg-white" />
+                                                <a href={answer} download={`answer-${i + 1}.png`} className="text-xs text-primary hover:underline">Download Image</a>
+                                            </div>
+                                        ) : (
+                                            <p className="text-text-main whitespace-pre-wrap">{answer}</p>
+                                        )
+                                    ) : (
+                                        <p className="text-text-muted italic">No answer provided</p>
+                                    )}
+                                </div>
                             </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                     {(!selectedSubmission.answers || Object.keys(selectedSubmission.answers).length === 0) && (
                         <p className="text-text-muted">No text answers</p>
                     )}

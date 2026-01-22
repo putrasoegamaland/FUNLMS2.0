@@ -26,7 +26,7 @@ export default function TeacherVideosPage() {
 
     // Filter videos created by this teacher
     const videos = useMemo(() => {
-        return allVideos.filter(v => v.created_by === user?.id);
+        return allVideos.filter(v => v.teacher_id === user?.id);
     }, [allVideos, user]);
 
     const classes = allClasses;
@@ -41,7 +41,7 @@ export default function TeacherVideosPage() {
         try {
             const videoData = {
                 ...formData,
-                created_by: user?.id,
+                teacher_id: user?.id,
                 type: getVideoType(formData.url),
             };
 

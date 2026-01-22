@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS classes (
     name TEXT NOT NULL,
     emoji TEXT DEFAULT '📚',
     description TEXT,
+    level TEXT DEFAULT 'Grade 1',
     teacher_id UUID REFERENCES users(id) ON DELETE SET NULL,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -55,7 +56,8 @@ CREATE TABLE IF NOT EXISTS books (
     pdf_data TEXT, -- Base64 encoded PDF
     pdf_name TEXT,
     pdf_size INTEGER,
-    class_ids UUID[] DEFAULT '{}',
+    class_id UUID REFERENCES classes(id) ON DELETE SET NULL,
+    teacher_id UUID REFERENCES users(id) ON DELETE SET NULL,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -66,10 +68,14 @@ CREATE TABLE IF NOT EXISTS assessments (
     title TEXT NOT NULL,
     description TEXT,
     subject TEXT,
-    type TEXT DEFAULT 'quiz' CHECK (type IN ('quiz', 'exam', 'essay', 'written')),
+    type TEXT DEFAULT 'quiz' CHECK (type IN ('quiz', 'exam', 'essay', 'written', 'multiple_choice', 'written_exam', 'drawing', 'game')),
     class_id UUID REFERENCES classes(id) ON DELETE SET NULL,
+    teacher_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    subject_id UUID REFERENCES subjects(id) ON DELETE SET NULL,
     questions JSONB DEFAULT '[]',
     settings JSONB DEFAULT '{}',
+    start_date TIMESTAMPTZ,
+    due_date TIMESTAMPTZ,
     is_active BOOLEAN DEFAULT true,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -136,6 +142,8 @@ CREATE TABLE IF NOT EXISTS videos (
     thumbnail TEXT,
     duration INTEGER, -- seconds
     class_id UUID REFERENCES classes(id) ON DELETE SET NULL,
+    subject_id UUID REFERENCES subjects(id) ON DELETE SET NULL,
+    teacher_id UUID REFERENCES users(id) ON DELETE SET NULL,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -173,6 +181,23 @@ CREATE TABLE IF NOT EXISTS submissions (
     feedback TEXT,
     graded_at TIMESTAMPTZ,
     submitted_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Attempts table (quiz/assessment submissions)
+CREATE TABLE IF NOT EXISTS attempts (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    assessment_id UUID REFERENCES assessments(id) ON DELETE CASCADE,
+    subject_id UUID REFERENCES subjects(id) ON DELETE SET NULL,
+    score INTEGER, -- NULL means waiting for manual grade
+    answers JSONB DEFAULT '{}',
+    violations INTEGER DEFAULT 0,
+    forced_submit BOOLEAN DEFAULT false,
+    teacher_score INTEGER,
+    teacher_feedback TEXT,
+    graded_at TIMESTAMPTZ,
+    completed_at TIMESTAMPTZ DEFAULT NOW(),
+    created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Enable Row Level Security (optional, recommended for production)

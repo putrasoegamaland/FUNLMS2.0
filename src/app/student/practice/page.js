@@ -57,7 +57,21 @@ function PracticeQuizContent() {
 
     // Auto-start quiz from URL param
     useEffect(() => {
+        const quizId = searchParams.get('id');
         const subjectId = searchParams.get('subject');
+
+        if (quizId && assessments.length > 0) {
+            const quiz = assessments.find(a => a.id === quizId);
+            if (quiz) {
+                if (quiz.access?.accessible) {
+                    startQuiz(quiz);
+                } else {
+                    alert(`This quiz is not accessible: ${quiz.access?.reason || 'Locked'}`);
+                }
+                return;
+            }
+        }
+
         if (subjectId && assessments.length > 0) {
             const subjectAssessments = assessments.filter(a => a.subject_id === subjectId && a.access?.accessible);
             if (subjectAssessments.length > 0) {
@@ -182,18 +196,31 @@ function PracticeQuizContent() {
             }
         });
 
+        // Score calculation
         const mcQuestions = quiz.questions?.filter(q => q.type === 'mc' || !q.type).length || 0;
-        const score = mcQuestions > 0 ? Math.round((correctCount / mcQuestions) * 100) : 100;
+
+        // For purely manual assessments (drawing/essay), score is null until graded
+        const isManualGrading = ['essay', 'written_exam', 'drawing'].includes(quiz.type);
+        const score = isManualGrading ? null : (mcQuestions > 0 ? Math.round((correctCount / mcQuestions) * 100) : 0);
+
         const isPerfect = score === 100;
 
-        // Calculate XP
+        // Calculate XP - always award at least base XP for completing
         let xpEarned = correctCount * (config?.xpPerCorrect || 10);
+        if (isManualGrading) {
+            // Award participation XP for drawing/essay (scaled by question count)
+            xpEarned = (quiz.questions?.length || 1) * (config?.xpPerCorrect || 10);
+        }
         if (isPerfect) {
             xpEarned += config?.xpPerfectBonus || 20;
         }
 
         // Award XP
-        awardXP(xpEarned, quiz.subject_id);
+        try {
+            await awardXP(xpEarned, quiz.subject_id);
+        } catch (e) {
+            console.error('Error awarding XP:', e);
+        }
 
         // Save attempt to Supabase
         const attemptData = {
@@ -201,7 +228,11 @@ function PracticeQuizContent() {
             assessment_id: quiz.id,
             subject_id: quiz.subject_id,
             score,
-            answers,
+            answers: {
+                ...answers,
+                ...textAnswers,
+                ...drawingAnswers,
+            },
             violations: violations.length,
             forced_submit: forced,
             completed_at: new Date().toISOString(),
@@ -209,8 +240,10 @@ function PracticeQuizContent() {
 
         try {
             await createRecord('attempts', attemptData);
+            console.log('Quiz attempt saved successfully');
         } catch (error) {
             console.error('Error saving attempt:', error);
+            alert('Error saving your submission. Please check your connection.');
         }
 
         setResults({
@@ -227,8 +260,8 @@ function PracticeQuizContent() {
     const question = selectedQuiz?.questions?.[currentQuestion];
     const totalQuestions = selectedQuiz?.questions?.length || 0;
     const progress = totalQuestions > 0 ? ((currentQuestion + 1) / totalQuestions) * 100 : 0;
-    const isEssayOrExam = selectedQuiz?.type === 'essay' || selectedQuiz?.type === 'written_exam';
-    const allowDrawing = selectedQuiz?.settings?.allowImageAnswer;
+    const isEssayOrExam = ['essay', 'written_exam', 'drawing'].includes(selectedQuiz?.type);
+    const allowDrawing = selectedQuiz?.settings?.allowImageAnswer || selectedQuiz?.type === 'drawing';
 
     // Quiz Selection Screen
     if (step === 'select') {
@@ -471,7 +504,7 @@ function PracticeQuizContent() {
                             )}
 
                             {/* Multiple Choice Options */}
-                            {(question.type === 'mc' || !question.type) && (
+                            {(question.type === 'mc' || !question.type) && selectedQuiz?.type !== 'drawing' && (
                                 <div className="space-y-3">
                                     {question.options?.map((option) => (
                                         <button

@@ -4,7 +4,7 @@ import { useRef, useState, useEffect, forwardRef, useImperativeHandle } from 're
 
 /**
  * Drawing Canvas Component for student answers
- * Supports freehand drawing with undo/redo and export to base64
+ * Enhanced "Gartic-like" environment with tools, colors, and sizes
  */
 const DrawingCanvas = forwardRef(function DrawingCanvas({
     width = 300,
@@ -17,6 +17,7 @@ const DrawingCanvas = forwardRef(function DrawingCanvas({
     const [isDrawing, setIsDrawing] = useState(false);
     const [color, setColor] = useState('#000000');
     const [brushSize, setBrushSize] = useState(4);
+    const [tool, setTool] = useState('pencil'); // pencil, eraser
     const [history, setHistory] = useState([]);
     const [historyIndex, setHistoryIndex] = useState(-1);
 
@@ -104,7 +105,7 @@ const DrawingCanvas = forwardRef(function DrawingCanvas({
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
         ctx.lineWidth = brushSize;
-        ctx.strokeStyle = color;
+        ctx.strokeStyle = tool === 'eraser' ? '#ffffff' : color;
 
         setIsDrawing(true);
     };
@@ -171,86 +172,95 @@ const DrawingCanvas = forwardRef(function DrawingCanvas({
         }
     };
 
-    const colors = ['#000000', '#ff0000', '#0000ff', '#00aa00', '#ff9900', '#9900ff'];
+    const colors = ['#000000', '#ff0000', '#0000ff', '#00aa00', '#ff9900', '#9900ff', '#884400', '#FF69B4'];
+    const sizes = [2, 4, 8, 16, 24];
 
     return (
-        <div className="space-y-2">
-            {/* Toolbar */}
-            <div className="flex items-center justify-between gap-2 flex-wrap">
-                {/* Colors */}
-                <div className="flex gap-1">
-                    {colors.map((c) => (
-                        <button
-                            key={c}
-                            onClick={() => setColor(c)}
-                            disabled={disabled}
-                            className={`w-6 h-6 rounded-full border-2 ${color === c ? 'border-gray-800 scale-110' : 'border-gray-300'
-                                }`}
-                            style={{ backgroundColor: c }}
-                        />
-                    ))}
+        <div className="space-y-3 bg-gray-50 p-3 rounded-2xl border border-gray-200">
+            {/* Main Toolbar */}
+            <div className="flex flex-wrap items-center justify-between gap-3">
+
+                {/* Tools */}
+                <div className="flex gap-2 bg-white p-1 rounded-xl shadow-sm border border-gray-100">
+                    <button
+                        onClick={() => setTool('pencil')}
+                        className={`p-2 rounded-lg transition-all ${tool === 'pencil' ? 'bg-primary text-white shadow-md scale-105' : 'hover:bg-gray-100 text-text-muted'}`}
+                        title="Pencil"
+                    >
+                        <span className="material-symbols-outlined">edit</span>
+                    </button>
+                    <button
+                        onClick={() => setTool('eraser')}
+                        className={`p-2 rounded-lg transition-all ${tool === 'eraser' ? 'bg-pink-500 text-white shadow-md scale-105' : 'hover:bg-gray-100 text-text-muted'}`}
+                        title="Eraser"
+                    >
+                        <span className="material-symbols-outlined">ink_eraser</span>
+                    </button>
                 </div>
 
-                {/* Brush size */}
-                <div className="flex items-center gap-1">
-                    {[2, 4, 8, 12].map((size) => (
+                {/* Colors (only show if pencil) */}
+                {tool === 'pencil' && (
+                    <div className="flex gap-1.5 bg-white p-1.5 rounded-xl shadow-sm border border-gray-100 overflow-x-auto no-scrollbar">
+                        {colors.map((c) => (
+                            <button
+                                key={c}
+                                onClick={() => setColor(c)}
+                                disabled={disabled}
+                                className={`w-8 h-8 rounded-full border-2 transition-transform hover:scale-110 ${color === c ? 'border-gray-800 scale-110 ring-2 ring-offset-1 ring-gray-200' : 'border-transparent'}`}
+                                style={{ backgroundColor: c }}
+                            />
+                        ))}
+                    </div>
+                )}
+
+                {/* Brush Size */}
+                <div className="flex items-center gap-2 bg-white p-1.5 rounded-xl shadow-sm border border-gray-100">
+                    {sizes.map((size) => (
                         <button
                             key={size}
                             onClick={() => setBrushSize(size)}
                             disabled={disabled}
-                            className={`w-6 h-6 rounded-lg border flex items-center justify-center ${brushSize === size ? 'bg-gray-200 border-gray-400' : 'border-gray-200'
-                                }`}
+                            className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${brushSize === size ? 'bg-gray-100 ring-2 ring-primary ring-inset' : 'hover:bg-gray-50'}`}
                         >
                             <div
-                                className="rounded-full bg-gray-800"
-                                style={{ width: size, height: size }}
+                                className={`rounded-full ${tool === 'eraser' ? 'bg-pink-300 border border-pink-500' : 'bg-gray-800'}`}
+                                style={{ width: Math.min(size, 20), height: Math.min(size, 20) }}
                             />
                         </button>
                     ))}
                 </div>
 
-                {/* Actions */}
-                <div className="flex gap-1">
-                    <button
-                        onClick={undo}
-                        disabled={disabled || historyIndex <= 0}
-                        className="p-1.5 rounded-lg border border-gray-200 hover:bg-gray-100 disabled:opacity-30"
-                    >
-                        <span className="material-symbols-outlined" style={{ fontSize: 18 }}>undo</span>
+                {/* History Actions */}
+                <div className="flex gap-2 ml-auto">
+                    <button onClick={undo} disabled={disabled || historyIndex <= 0} className="p-2 rounded-lg bg-white border border-gray-100 hover:bg-gray-50 disabled:opacity-30 shadow-sm text-text-muted">
+                        <span className="material-symbols-outlined">undo</span>
                     </button>
-                    <button
-                        onClick={redo}
-                        disabled={disabled || historyIndex >= history.length - 1}
-                        className="p-1.5 rounded-lg border border-gray-200 hover:bg-gray-100 disabled:opacity-30"
-                    >
-                        <span className="material-symbols-outlined" style={{ fontSize: 18 }}>redo</span>
+                    <button onClick={redo} disabled={disabled || historyIndex >= history.length - 1} className="p-2 rounded-lg bg-white border border-gray-100 hover:bg-gray-50 disabled:opacity-30 shadow-sm text-text-muted">
+                        <span className="material-symbols-outlined">redo</span>
                     </button>
-                    <button
-                        onClick={clear}
-                        disabled={disabled}
-                        className="p-1.5 rounded-lg border border-gray-200 hover:bg-gray-100 disabled:opacity-30"
-                    >
-                        <span className="material-symbols-outlined" style={{ fontSize: 18 }}>delete</span>
+                    <button onClick={clear} disabled={disabled} className="p-2 rounded-lg bg-red-50 border border-red-100 hover:bg-red-100 text-red-500 disabled:opacity-30 shadow-sm" title="Clear All">
+                        <span className="material-symbols-outlined">delete</span>
                     </button>
                 </div>
             </div>
 
-            {/* Canvas */}
-            <canvas
-                ref={canvasRef}
-                width={width}
-                height={height}
-                onMouseDown={startDrawing}
-                onMouseMove={draw}
-                onMouseUp={stopDrawing}
-                onMouseLeave={stopDrawing}
-                onTouchStart={startDrawing}
-                onTouchMove={draw}
-                onTouchEnd={stopDrawing}
-                className={`border-2 border-gray-300 rounded-xl bg-white touch-none ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-crosshair'
-                    }`}
-                style={{ maxWidth: '100%' }}
-            />
+            {/* Canvas Area */}
+            <div className="relative rounded-2xl overflow-hidden shadow-inner bg-white border-2 border-dashed border-gray-300">
+                <canvas
+                    ref={canvasRef}
+                    width={width}
+                    height={height}
+                    onMouseDown={startDrawing}
+                    onMouseMove={draw}
+                    onMouseUp={stopDrawing}
+                    onMouseLeave={stopDrawing}
+                    onTouchStart={startDrawing}
+                    onTouchMove={draw}
+                    onTouchEnd={stopDrawing}
+                    className={`touch-none w-full h-full ${disabled ? 'opacity-50 cursor-not-allowed' : (tool === 'eraser' ? 'cursor-cell' : 'cursor-crosshair')}`}
+                    style={{ maxWidth: '100%', imageRendering: 'pixelated' }}
+                />
+            </div>
         </div>
     );
 });

@@ -119,7 +119,7 @@ export function useAssessments(filter) {
 }
 
 export function useAttempts(filter) {
-    return useSupabaseQuery('attempts', { filter });
+    return useSupabaseQuery('attempts', { filter, orderBy: 'completed_at' });
 }
 
 export function useAssignments(filter) {
@@ -127,7 +127,7 @@ export function useAssignments(filter) {
 }
 
 export function useSubmissions(filter) {
-    return useSupabaseQuery('submissions', { filter });
+    return useSupabaseQuery('submissions', { filter, orderBy: 'submitted_at' });
 }
 
 export function useVideos(filter) {

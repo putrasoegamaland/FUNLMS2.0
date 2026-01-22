@@ -109,6 +109,7 @@ export default function TeacherBooksPage() {
                 <BookModal
                     book={editingBook}
                     classes={classes}
+                    teacherId={user?.id}
                     refetchBooks={refetchBooks}
                     onClose={() => setShowModal(false)}
                     onSave={() => {
@@ -164,7 +165,7 @@ function BookCard({ book, classes, onEdit, onDelete }) {
     );
 }
 
-function BookModal({ book, classes, refetchBooks, onClose, onSave }) {
+function BookModal({ book, classes, teacherId, refetchBooks, onClose, onSave }) {
     const fileInputRef = useRef(null);
     const [uploading, setUploading] = useState(false);
     const [saving, setSaving] = useState(false);
@@ -222,7 +223,7 @@ function BookModal({ book, classes, refetchBooks, onClose, onSave }) {
             if (book) {
                 await updateRecord('books', book.id, formData);
             } else {
-                await createRecord('books', formData);
+                await createRecord('books', { ...formData, teacher_id: teacherId });
             }
             onSave();
         } catch (err) {

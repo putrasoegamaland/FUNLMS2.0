@@ -2,15 +2,16 @@
 
 import { useState, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useSubjects, useClasses, createRecord } from '@/hooks/useSupabaseData';
+import { useSubjects, useClasses, useAssessments, createRecord, deleteRecord } from '@/hooks/useSupabaseData';
 import { processImage, formatFileSize } from '@/lib/fileUtils';
 
 export default function TeacherContentPage() {
     const { user } = useAuth();
     const { data: subjects, loading: subjectsLoading } = useSubjects();
     const { data: allClasses, loading: classesLoading } = useClasses({ teacher_id: user?.id });
+    const { data: allAssessments, loading: assessmentsLoading, refetch: refetchAssessments } = useAssessments();
 
-    const [step, setStep] = useState('type'); // type, questions, settings, preview
+    const [step, setStep] = useState('list'); // list, type, questions, settings, preview
     const [assessmentType, setAssessmentType] = useState('multiple_choice');
     const [formData, setFormData] = useState({
         title: '',
@@ -26,14 +27,31 @@ export default function TeacherContentPage() {
             tabLock: false,
             allowImageAnswer: false,
         },
-        start_at: '',
-        end_at: '',
+        start_date: '',
+        due_date: '',
         class_id: '',
     });
     const [saving, setSaving] = useState(false);
 
-    const isLoading = subjectsLoading || classesLoading;
+    const isLoading = subjectsLoading || classesLoading || assessmentsLoading;
     const classes = allClasses;
+
+    // Filter quizzes created by this teacher (excluding games)
+    const myQuizzes = allAssessments.filter(a =>
+        a.teacher_id === user?.id &&
+        a.type !== 'game'
+    );
+
+    const handleDelete = async (id) => {
+        if (confirm('Are you sure you want to delete this quiz?')) {
+            try {
+                await deleteRecord('assessments', id);
+                refetchAssessments();
+            } catch (error) {
+                alert('Error deleting: ' + error.message);
+            }
+        }
+    };
 
     const addQuestion = () => {
         const newQuestion = {
@@ -74,20 +92,23 @@ export default function TeacherContentPage() {
             const assessment = {
                 ...formData,
                 type: assessmentType,
-                created_by: user?.id,
+                teacher_id: user?.id,
             };
             await createRecord('assessments', assessment);
             alert('Quiz created successfully!');
             // Reset form
-            setStep('type');
+            alert('Quiz created successfully!');
+            // Reset form
+            setStep('list');
+            refetchAssessments();
             setFormData({
                 title: '',
                 subject_id: '',
                 type: 'multiple_choice',
                 questions: [],
                 settings: { aiHints: true, hintLimit: 3, allowSkip: true, allowRedo: false, realtimeFeedback: true, tabLock: false, allowImageAnswer: false },
-                start_at: '',
-                end_at: '',
+                start_date: '',
+                due_date: '',
                 class_id: '',
             });
         } catch (error) {
@@ -101,18 +122,79 @@ export default function TeacherContentPage() {
         <div className="p-4 space-y-4">
             {/* Header */}
             <div className="flex items-center justify-between">
-                {step !== 'type' && (
-                    <button onClick={() => setStep(step === 'questions' ? 'type' : step === 'settings' ? 'questions' : 'settings')}>
+                {step !== 'list' && (
+                    <button onClick={() => setStep(step === 'type' ? 'list' : step === 'questions' ? 'type' : step === 'settings' ? 'questions' : 'settings')}>
                         <span className="material-symbols-outlined text-text-muted">arrow_back</span>
                     </button>
                 )}
-                <h2 className="text-lg font-bold text-text-main flex-1 text-center">Create Quiz</h2>
+                <h2 className="text-lg font-bold text-text-main flex-1 text-center">
+                    {step === 'list' ? 'My Quizzes' : 'Create Quiz'}
+                </h2>
                 {step === 'questions' && (
                     <button onClick={() => setStep('settings')} className="text-primary font-semibold">
                         Save
                     </button>
                 )}
             </div>
+
+            {/* Step: List Quizzes */}
+            {step === 'list' && (
+                <div className="space-y-4">
+                    {myQuizzes.length > 0 ? (
+                        <div className="space-y-3">
+                            {myQuizzes.map((quiz) => {
+                                const subject = subjects.find(s => s.id === quiz.subject_id);
+                                const assignedClass = classes.find(c => c.id === quiz.class_id);
+                                return (
+                                    <div key={quiz.id} className="bg-card-light p-4 rounded-xl border border-gray-100 flex items-center justify-between group">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-2xl">
+                                                {quiz.type === 'drawing' ? '🎨' : quiz.type === 'essay' ? '✏️' : '📝'}
+                                            </div>
+                                            <div>
+                                                <h4 className="font-bold text-text-main">{quiz.title}</h4>
+                                                <div className="flex gap-2 text-xs text-text-muted mt-0.5">
+                                                    {subject && <span>{subject.name}</span>}
+                                                    <span>•</span>
+                                                    <span>{quiz.questions?.length || 0} questions</span>
+                                                    {assignedClass && (
+                                                        <>
+                                                            <span>•</span>
+                                                            <span className="bg-gray-100 px-1.5 rounded">{assignedClass.name}</span>
+                                                        </>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button
+                                                onClick={() => handleDelete(quiz.id)}
+                                                className="p-2 hover:bg-red-50 rounded-lg text-red-500"
+                                                title="Delete Quiz"
+                                            >
+                                                <span className="material-symbols-outlined">delete</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    ) : (
+                        <div className="text-center py-12 text-text-muted">
+                            <p className="text-4xl mb-3">📝</p>
+                            <p>No quizzes created yet.</p>
+                        </div>
+                    )}
+
+                    <button
+                        onClick={() => setStep('type')}
+                        className="fixed bottom-24 right-4 flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-full shadow-lg font-bold"
+                    >
+                        <span className="material-symbols-outlined">add</span>
+                        Create Quiz
+                    </button>
+                </div>
+            )}
 
             {/* Step: Choose Type */}
             {step === 'type' && (
@@ -261,8 +343,8 @@ export default function TeacherContentPage() {
                             <label className="block text-sm text-text-muted mb-1">Start Date & Time</label>
                             <input
                                 type="datetime-local"
-                                value={formData.start_at}
-                                onChange={(e) => setFormData({ ...formData, start_at: e.target.value })}
+                                value={formData.start_date}
+                                onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
                                 className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none"
                             />
                         </div>
@@ -272,8 +354,8 @@ export default function TeacherContentPage() {
                                 <label className="block text-sm text-text-muted mb-1">Deadline</label>
                                 <input
                                     type="datetime-local"
-                                    value={formData.end_at}
-                                    onChange={(e) => setFormData({ ...formData, end_at: e.target.value })}
+                                    value={formData.due_date}
+                                    onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
                                     className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none"
                                 />
                             </div>

@@ -158,6 +158,7 @@ export default function AdminClassesPage() {
                     classData={editingClass}
                     users={users}
                     enrollments={enrollments}
+                    classes={classes}
                     onClose={() => setShowModal(false)}
                     onSave={handleSave}
                 />
@@ -238,7 +239,7 @@ function ActionSheet({ classData, onClose, onEdit, onDelete }) {
     );
 }
 
-function ClassModal({ classData, users, enrollments, onClose, onSave }) {
+function ClassModal({ classData, users, enrollments, classes, onClose, onSave }) {
     const teachers = users.filter(u => u.role === 'teacher');
     const students = users.filter(u => u.role === 'student');
 
@@ -260,6 +261,25 @@ function ClassModal({ classData, users, enrollments, onClose, onSave }) {
     }, [classData, enrollments]);
 
     const toggleStudent = (studentId) => {
+        // Check if student is already enrolled in another class
+        const existingEnrollment = enrollments.find(e =>
+            e.student_id === studentId && e.class_id !== classData?.id
+        );
+
+        if (existingEnrollment && !selectedStudents.includes(studentId)) {
+            // Find the class name
+            const existingClass = classes.find(c => c.id === existingEnrollment.class_id);
+            const student = students.find(s => s.id === studentId);
+
+            if (!confirm(
+                `⚠️ ${student?.name || 'This student'} is already enrolled in "${existingClass?.name || 'another class'}".\n\n` +
+                `Students can only be in ONE class at a time. Adding them here will REMOVE them from their current class.\n\n` +
+                `Do you want to proceed?`
+            )) {
+                return; // User cancelled
+            }
+        }
+
         setSelectedStudents(prev =>
             prev.includes(studentId)
                 ? prev.filter(id => id !== studentId)
@@ -277,7 +297,7 @@ function ClassModal({ classData, users, enrollments, onClose, onSave }) {
                 await updateRecord('classes', classData.id, formData);
                 classId = classData.id;
 
-                // Clear old enrollments
+                // Clear old enrollments for THIS class only
                 const oldEnrollments = enrollments.filter(e => e.class_id === classId);
                 for (const e of oldEnrollments) {
                     await deleteRecord('enrollments', e.id);
@@ -287,8 +307,17 @@ function ClassModal({ classData, users, enrollments, onClose, onSave }) {
                 classId = newClass.id;
             }
 
-            // Add new enrollments
+            // Add new enrollments (and remove from other classes if needed)
             for (const studentId of selectedStudents) {
+                // Remove from any existing class first (single enrollment enforcement)
+                const existingEnrollment = enrollments.find(e =>
+                    e.student_id === studentId && e.class_id !== classId
+                );
+                if (existingEnrollment) {
+                    await deleteRecord('enrollments', existingEnrollment.id);
+                }
+
+                // Add to this class
                 await createRecord('enrollments', { class_id: classId, student_id: studentId });
             }
 

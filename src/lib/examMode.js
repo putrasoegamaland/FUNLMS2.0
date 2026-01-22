@@ -155,28 +155,30 @@ export function checkAccessibility(assessment) {
     }
 
     // Check start time
-    if (assessment.startAt) {
-        const startDate = new Date(assessment.startAt);
+    const start = assessment.start_date || assessment.startAt;
+    if (start) {
+        const startDate = new Date(start);
         if (now < startDate) {
             const countdown = Math.ceil((startDate - now) / 1000); // seconds until start
             return {
                 accessible: false,
                 reason: 'not_started',
                 countdown,
-                startAt: startDate.toLocaleString(),
+                startAt: startDate.toLocaleString(), // standardized return key
             };
         }
     }
 
     // Check end time (for quizzes and essays, not written exams)
-    if (assessment.endAt && assessment.type !== 'written_exam') {
-        const endDate = new Date(assessment.endAt);
+    const end = assessment.due_date || assessment.endAt;
+    if (end && assessment.type !== 'written_exam') {
+        const endDate = new Date(end);
         if (now > endDate) {
             return {
                 accessible: false,
                 reason: 'expired',
                 countdown: 0,
-                endAt: endDate.toLocaleString(),
+                endAt: endDate.toLocaleString(), // standardized return key
             };
         }
     }

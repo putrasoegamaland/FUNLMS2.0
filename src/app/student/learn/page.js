@@ -3,7 +3,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useGame } from '@/contexts/GameContext';
-import { useEnrollments, useAssignments, useSubmissions } from '@/hooks/useSupabaseData';
+import { useEnrollments, useAssignments, useSubmissions, useAssessments, useAttempts } from '@/hooks/useSupabaseData';
+import { checkAccessibility } from '@/lib/examMode';
 import Link from 'next/link';
 
 export default function StudentHomePage() {
@@ -12,6 +13,8 @@ export default function StudentHomePage() {
     const { data: enrollments, loading: enrollmentsLoading } = useEnrollments({ student_id: user?.id });
     const { data: allAssignments, loading: assignmentsLoading } = useAssignments();
     const { data: allSubmissions, loading: submissionsLoading } = useSubmissions({ student_id: user?.id });
+    const { data: allAssessments, loading: assessmentsLoading } = useAssessments();
+    const { data: allAttempts, loading: attemptsLoading } = useAttempts({ user_id: user?.id });
 
     const [randomQuote, setRandomQuote] = useState('');
 
@@ -26,14 +29,31 @@ export default function StudentHomePage() {
             return !submission;
         }).length;
 
+        // Calculate pending quizzes
+        const myQuizzes = allAssessments.filter(a => {
+            if (a.type === 'game') return false;
+            const assigned = a.class_id && classIds.includes(a.class_id);
+            // Check if accessible and not completed
+            const access = checkAccessibility(a);
+            if (!assigned && a.class_id) return false;
+            if (!access.accessible) return false;
+
+            // Check attempts
+            const attempts = allAttempts.filter(at => at.assessment_id === a.id);
+            // If unlimited attempts or attempts < max_plays (if exists), considering simplified "done" if score exists or completed
+            // For dashboard, simplifying: if no attempts, it's pending.
+            return attempts.length === 0;
+        });
+
         const earnedBadges = getUnlockedBadges?.() || [];
 
         return {
             pendingAssignments: pendingCount,
+            pendingQuizzes: myQuizzes.length,
             completedVideos: 0, // Would need video progress tracking
             badgesCount: earnedBadges.length,
         };
-    }, [enrollments, allAssignments, allSubmissions, getUnlockedBadges]);
+    }, [enrollments, allAssignments, allSubmissions, allAssessments, allAttempts, getUnlockedBadges]);
 
     useEffect(() => {
         const quotes = [
@@ -132,12 +152,20 @@ export default function StudentHomePage() {
 
             {/* Quick Practice Banner */}
             <Link href="/student/practice">
-                <div className="mt-6 bg-gradient-to-r from-orange-400 to-pink-500 p-5 rounded-3xl text-white shadow-lg flex items-center justify-between group">
-                    <div>
+                <div className="mt-6 bg-gradient-to-r from-orange-400 to-pink-500 p-5 rounded-3xl text-white shadow-lg flex items-center justify-between group relative overflow-hidden">
+                    <div className="z-10">
                         <h3 className="font-bold text-lg">Daily Practice</h3>
-                        <p className="text-white/90 text-sm">Earn XP by taking quizzes!</p>
+                        <p className="text-white/90 text-sm">
+                            {stats.pendingQuizzes > 0
+                                ? `${stats.pendingQuizzes} new quizzes available!`
+                                : "Earn XP by taking quizzes!"}
+                        </p>
                     </div>
                     <span className="text-3xl group-hover:scale-110 transition-transform">📝</span>
+
+                    {stats.pendingQuizzes > 0 && (
+                        <div className="w-3 h-3 bg-white rounded-full absolute top-4 right-4 animate-pulse shadow-lg"></div>
+                    )}
                 </div>
             </Link>
         </div>

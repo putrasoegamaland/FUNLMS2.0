@@ -3,15 +3,21 @@
 import { useState, useRef, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useGame } from '@/contexts/GameContext';
-import { useEnrollments, useAssignments, useSubmissions, createRecord } from '@/hooks/useSupabaseData';
+import { useEnrollments, useAssignments, useSubmissions, useAssessments, useAttempts, useSubjects, createRecord } from '@/hooks/useSupabaseData';
+import { checkAccessibility } from '@/lib/examMode';
 import { processImage } from '@/lib/fileUtils';
+import { useRouter } from 'next/navigation';
 
 export default function StudentAssignmentsPage() {
     const { user } = useAuth();
+    const router = useRouter();
     const { awardXP } = useGame();
     const { data: enrollments, loading: enrollmentsLoading } = useEnrollments({ student_id: user?.id });
     const { data: allAssignments, loading: assignmentsLoading } = useAssignments();
     const { data: allSubmissions, loading: submissionsLoading, refetch: refetchSubmissions } = useSubmissions({ student_id: user?.id });
+    const { data: allAssessments, loading: assessmentsLoading } = useAssessments();
+    const { data: allAttempts, loading: attemptsLoading } = useAttempts({ user_id: user?.id });
+    const { data: subjects, loading: subjectsLoading } = useSubjects();
 
     const [selectedAssignment, setSelectedAssignment] = useState(null);
     const [uploadedFiles, setUploadedFiles] = useState([]);
@@ -20,23 +26,88 @@ export default function StudentAssignmentsPage() {
     const [submitting, setSubmitting] = useState(false);
     const fileInputRef = useRef(null);
 
-    const isLoading = enrollmentsLoading || assignmentsLoading || submissionsLoading;
+    const isLoading = enrollmentsLoading || assignmentsLoading || submissionsLoading || assessmentsLoading || attemptsLoading || subjectsLoading;
 
-    // Get student's class IDs and filter assignments
-    const assignments = useMemo(() => {
+    // Combine and process all tasks (assignments + quizzes)
+    const { pendingTasks, completedTasks, stats } = useMemo(() => {
         const classIds = enrollments.map(e => e.class_id);
-        const myAssignments = allAssignments.filter(a => classIds.includes(a.class_id));
 
-        return myAssignments.map(a => {
+        // Process Assignments
+        const myAssignments = allAssignments.filter(a => classIds.includes(a.class_id)).map(a => {
             const submission = allSubmissions.find(s => s.assignment_id === a.id);
+            const subject = subjects.find(s => {
+                // Try to guess subject from title or use a default if not linked
+                // In a real app, assignments should probably have subject_id. 
+                // Currently they don't in the schema, but could be inferred or default.
+                // Assuming 'General' or trying to find match.
+                return true;
+            });
+
             return {
                 ...a,
+                taskType: 'assignment',
+                status: submission ? (submission.grade ? 'graded' : 'submitted') :
+                    (a.due_date && new Date(a.due_date) < new Date()) ? 'overdue' : 'pending',
                 submission,
-                isSubmitted: !!submission,
-                isGraded: submission?.grade !== undefined && submission?.grade !== null,
+                subject_id: 'general' // Assignments table doesn't have subject_id yet, grouping under General or Class
             };
         });
-    }, [enrollments, allAssignments, allSubmissions]);
+
+        // Process Quizzes
+        const myQuizzes = allAssessments.filter(a => {
+            if (a.type === 'game') return false;
+            return (a.class_id && classIds.includes(a.class_id)) || !a.class_id;
+        }).map(a => {
+            const attempts = allAttempts.filter(at => at.assessment_id === a.id);
+            const isCompleted = attempts.length > 0; // Simplified
+            const access = checkAccessibility(a);
+
+            return {
+                ...a,
+                taskType: 'quiz', // or a.type (multiple_choice, essay, etc)
+                status: isCompleted ? 'completed' :
+                    (!access.accessible) ? 'locked' :
+                        (a.due_date && new Date(a.due_date) < new Date()) ? 'expired' : 'pending',
+                attempts,
+                access
+            };
+        });
+
+        const all = [...myAssignments, ...myQuizzes];
+
+        // Split
+        const pending = all.filter(t => ['pending', 'overdue', 'expired', 'locked'].includes(t.status));
+        const completed = all.filter(t => ['submitted', 'graded', 'completed'].includes(t.status));
+
+        // Grouping helper
+        const group = (list) => {
+            const groups = {};
+            list.forEach(item => {
+                let subjectName = 'General Tasks';
+                if (item.subject_id && item.subject_id !== 'general') {
+                    const sub = subjects.find(s => s.id === item.subject_id);
+                    if (sub) subjectName = sub.name;
+                } else if (item.subject) {
+                    subjectName = item.subject; // Fallback for old schema
+                }
+
+                if (!groups[subjectName]) groups[subjectName] = [];
+                groups[subjectName].push(item);
+            });
+            return groups;
+        };
+
+        return {
+            pendingTasks: group(pending),
+            completedTasks: group(completed),
+            stats: {
+                total: all.length,
+                pending: pending.length,
+                completed: completed.length
+            }
+        };
+
+    }, [enrollments, allAssignments, allSubmissions, allAssessments, allAttempts, subjects]);
 
     const handleFileUpload = async (e) => {
         const files = Array.from(e.target.files);
@@ -274,84 +345,147 @@ export default function StudentAssignmentsPage() {
         );
     }
 
-    // Assignments list
+    // Unified Tasks List View
     return (
-        <div className="p-4 space-y-4">
+        <div className="p-4 space-y-6 pb-24">
             <div>
-                <h2 className="text-xl font-bold text-text-main">📋 My Assignments</h2>
-                <p className="text-sm text-text-muted">Complete and submit your work</p>
+                <h2 className="text-2xl font-bold text-text-main">📌 My Tasks Dashboard</h2>
+                <p className="text-text-muted">Stay on top of your learning!</p>
             </div>
 
-            {/* Stats */}
+            {/* Stats Overview */}
             <div className="grid grid-cols-3 gap-3">
-                <div className="bg-blue-100 rounded-xl p-3 text-center">
-                    <p className="text-xl font-bold text-blue-600">{assignments.length}</p>
-                    <p className="text-xs text-blue-700">Total</p>
+                <div className="bg-blue-100 rounded-2xl p-4 text-center shadow-sm">
+                    <p className="text-2xl font-bold text-blue-700">{stats.total}</p>
+                    <p className="text-xs text-blue-600 font-bold uppercase tracking-wide">Total Tasks</p>
                 </div>
-                <div className="bg-orange-100 rounded-xl p-3 text-center">
-                    <p className="text-xl font-bold text-orange-600">
-                        {assignments.filter(a => !a.isSubmitted).length}
-                    </p>
-                    <p className="text-xs text-orange-700">Pending</p>
+                <div className="bg-orange-100 rounded-2xl p-4 text-center shadow-sm relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-8 h-8 bg-orange-200 rounded-bl-full opacity-50"></div>
+                    <p className="text-2xl font-bold text-orange-700">{stats.pending}</p>
+                    <p className="text-xs text-orange-600 font-bold uppercase tracking-wide">To Do</p>
                 </div>
-                <div className="bg-green-100 rounded-xl p-3 text-center">
-                    <p className="text-xl font-bold text-green-600">
-                        {assignments.filter(a => a.isGraded).length}
-                    </p>
-                    <p className="text-xs text-green-700">Graded</p>
+                <div className="bg-green-100 rounded-2xl p-4 text-center shadow-sm">
+                    <p className="text-2xl font-bold text-green-700">{stats.completed}</p>
+                    <p className="text-xs text-green-600 font-bold uppercase tracking-wide">Done</p>
                 </div>
             </div>
 
-            {/* Assignments List */}
-            {assignments.length > 0 ? (
-                <div className="space-y-3">
-                    {assignments.map((assignment) => {
-                        const isOverdue = assignment.due_date && new Date(assignment.due_date) < new Date();
+            {/* Tasks Grouped by Subject */}
+            <div className="space-y-6">
+                {Object.keys(pendingTasks).length > 0 ? (
+                    Object.entries(pendingTasks).map(([subject, tasks]) => (
+                        <div key={subject} className="space-y-3">
+                            <h3 className="font-bold text-lg text-text-main flex items-center gap-2">
+                                <span className="w-1 h-6 bg-primary rounded-full"></span>
+                                {subject}
+                            </h3>
+                            <div className="grid gap-3">
+                                {tasks.map(task => (
+                                    <button
+                                        key={task.id}
+                                        onClick={() => {
+                                            if (task.taskType === 'assignment') {
+                                                setSelectedAssignment(task);
+                                            } else {
+                                                // Link to quiz
+                                                router.push(`/student/practice?id=${task.id}&subject=${task.subject_id}`);
+                                            }
+                                        }}
+                                        className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm hover:shadow-md hover:border-primary transition-all text-left flex items-start gap-4 group"
+                                    >
+                                        {/* Icon */}
+                                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl shrink-0 ${task.taskType === 'assignment' ? 'bg-purple-100' :
+                                            task.type === 'drawing' ? 'bg-pink-100' :
+                                                task.type === 'essay' ? 'bg-blue-100' : 'bg-orange-100'
+                                            }`}>
+                                            {task.taskType === 'assignment' ? '📋' :
+                                                task.type === 'drawing' ? '🎨' :
+                                                    task.type === 'essay' ? '✏️' : '📝'}
+                                        </div>
 
-                        return (
-                            <button
-                                key={assignment.id}
-                                onClick={() => setSelectedAssignment(assignment)}
-                                className="w-full flex items-center gap-4 p-4 rounded-xl bg-card-light border border-gray-100 text-left hover:border-primary"
-                            >
-                                <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl ${assignment.isGraded ? 'bg-green-100' :
-                                    assignment.isSubmitted ? 'bg-yellow-100' :
-                                        'bg-purple-100'
-                                    }`}>
-                                    {assignment.isGraded ? '✅' : assignment.isSubmitted ? '⏳' : '📋'}
-                                </div>
-                                <div className="flex-1">
-                                    <p className="font-bold text-text-main">{assignment.title}</p>
-                                    <div className="flex items-center gap-2 mt-1">
-                                        {assignment.isGraded ? (
-                                            <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">
-                                                Score: {assignment.submission?.grade}/{assignment.max_score || 100}
-                                            </span>
-                                        ) : assignment.isSubmitted ? (
-                                            <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded">
-                                                Submitted
-                                            </span>
-                                        ) : isOverdue ? (
-                                            <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded">
-                                                Overdue
-                                            </span>
-                                        ) : (
-                                            <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
-                                                Not submitted
-                                            </span>
+                                        {/* Content */}
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex justify-between items-start">
+                                                <h4 className="font-bold text-text-main truncate group-hover:text-primary transition-colors">
+                                                    {task.title}
+                                                </h4>
+                                                {task.status === 'overdue' && (
+                                                    <span className="text-[10px] bg-red-100 text-red-600 px-2 py-1 rounded-full font-bold">OVERDUE</span>
+                                                )}
+                                                {task.status === 'pending' && task.due_date && (
+                                                    <span className="text-[10px] bg-orange-50 text-orange-600 px-2 py-1 rounded-full font-bold">
+                                                        Due {new Date(task.due_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            <p className="text-sm text-text-muted mt-0.5 line-clamp-1">
+                                                {task.description || (task.taskType === 'assignment' ? 'Assignment' : 'Quiz')}
+                                            </p>
+
+                                            <div className="flex items-center gap-3 mt-2 text-xs text-text-muted">
+                                                <span className="capitalize">{task.type || 'Combined'}</span>
+                                                {task.questions && <span>• {task.questions.length} Questions</span>}
+                                            </div>
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    ))
+                ) : (
+                    <div className="text-center py-12 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+                        <span className="text-4xl mb-3 block">🎉</span>
+                        <p className="text-text-main font-bold">All caught up!</p>
+                        <p className="text-sm text-text-muted">No pending tasks found.</p>
+                    </div>
+                )}
+            </div>
+
+            {/* Completed History Accordion (Simplified as just list for now) */}
+            {Object.keys(completedTasks).length > 0 && (
+                <div className="pt-8 border-t border-gray-100">
+                    <h3 className="font-bold text-lg text-text-muted mb-4">History</h3>
+                    <div className="space-y-2">
+                        {Object.values(completedTasks).flat().map(task => {
+                            // Get grade info based on task type
+                            const isQuiz = task.taskType === 'quiz';
+                            const latestAttempt = isQuiz ? task.attempts?.[0] : null;
+                            const grade = isQuiz
+                                ? (latestAttempt?.teacher_score ?? latestAttempt?.score)
+                                : task.submission?.grade;
+                            const feedback = isQuiz
+                                ? latestAttempt?.teacher_feedback
+                                : task.submission?.feedback;
+                            const isGraded = grade !== undefined && grade !== null;
+                            const isPendingGrade = isQuiz && ['essay', 'written_exam', 'drawing'].includes(task.type) && !isGraded;
+
+                            return (
+                                <div key={task.id} className={`p-4 rounded-xl flex items-center gap-3 border ${isGraded ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-100'}`}>
+                                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl font-bold ${isGraded ? 'bg-green-200 text-green-700' :
+                                            isPendingGrade ? 'bg-yellow-200 text-yellow-700' : 'bg-gray-200 text-gray-600'
+                                        }`}>
+                                        {isGraded ? grade : isPendingGrade ? '⏳' : '✓'}
+                                    </div>
+                                    <div className="flex-1">
+                                        <p className="font-bold text-text-main text-sm">{task.title}</p>
+                                        <p className="text-xs text-text-muted">
+                                            {isGraded ? `Score: ${grade}/100` : isPendingGrade ? 'Awaiting grade' : 'Completed'}
+                                            {task.taskType === 'quiz' && ` • ${task.type || 'Quiz'}`}
+                                        </p>
+                                        {feedback && (
+                                            <p className="text-xs text-green-600 mt-1">💬 {feedback}</p>
                                         )}
                                     </div>
+                                    {isGraded && (
+                                        <div className="text-green-500">
+                                            <span className="material-symbols-outlined">check_circle</span>
+                                        </div>
+                                    )}
                                 </div>
-                                <span className="material-symbols-outlined text-text-muted">chevron_right</span>
-                            </button>
-                        );
-                    })}
-                </div>
-            ) : (
-                <div className="text-center py-12 bg-card-light rounded-xl border border-gray-100">
-                    <span className="text-5xl mb-4 block">📋</span>
-                    <p className="text-text-muted">No assignments yet</p>
-                    <p className="text-sm text-text-muted">Check back later!</p>
+                            );
+                        })}
+                    </div>
                 </div>
             )}
         </div>

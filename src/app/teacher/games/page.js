@@ -56,7 +56,7 @@ export default function TeacherGamesPage() {
 
     // Filter games created by this teacher
     const games = useMemo(() => {
-        return allAssessments.filter(a => a.type === 'game' && a.created_by === user?.id);
+        return allAssessments.filter(a => a.type === 'game' && a.teacher_id === user?.id);
     }, [allAssessments, user]);
 
     const classes = allClasses;
@@ -293,7 +293,7 @@ function GameCreator({ template, classes, subjects, userId, onBack, onSave }) {
             const game = {
                 ...formData,
                 type: 'game',
-                created_by: userId,
+                teacher_id: userId,
             };
             await createRecord('assessments', game);
             onSave();

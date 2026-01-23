@@ -14,6 +14,7 @@ export default function StudentBooksPage() {
     const [selectedBook, setSelectedBook] = useState(null);
     const [viewingPDF, setViewingPDF] = useState(false);
     const [showAskAI, setShowAskAI] = useState(false);
+    const [selectedCategory, setSelectedCategory] = useState('All');
 
     const isLoading = enrollmentsLoading || booksLoading;
 
@@ -35,6 +36,22 @@ export default function StudentBooksPage() {
         console.log('Filtered books for student:', filteredBooks.length);
         return filteredBooks;
     }, [allEnrollments, allBooks]);
+
+    // Get unique categories from books
+    const categories = useMemo(() => {
+        const cats = new Set(['All']);
+        books.forEach(book => {
+            if (book.category) cats.add(book.category);
+            if (book.subject) cats.add(book.subject);
+        });
+        return Array.from(cats);
+    }, [books]);
+
+    // Filter books by selected category
+    const filteredBooks = useMemo(() => {
+        if (selectedCategory === 'All') return books;
+        return books.filter(b => b.category === selectedCategory || b.subject === selectedCategory);
+    }, [books, selectedCategory]);
 
     // Loading state
     if (isLoading) {
@@ -171,25 +188,6 @@ export default function StudentBooksPage() {
 
     const bookColors = ['bg-yellow-400', 'bg-pink-400', 'bg-blue-400', 'bg-green-400', 'bg-purple-400', 'bg-orange-400'];
 
-    // Get unique categories from books
-    const categories = useMemo(() => {
-        const cats = new Set(['All']);
-        books.forEach(book => {
-            if (book.category) cats.add(book.category);
-            // Also check for subject as a fallback category
-            if (book.subject) cats.add(book.subject);
-        });
-        return Array.from(cats);
-    }, [books]);
-
-    const [selectedCategory, setSelectedCategory] = useState('All');
-
-    // Filter books by selected category
-    const filteredBooks = useMemo(() => {
-        if (selectedCategory === 'All') return books;
-        return books.filter(b => b.category === selectedCategory || b.subject === selectedCategory);
-    }, [books, selectedCategory]);
-
     return (
         <div className="p-4 space-y-4 pb-24">
             <h2 className="text-lg font-bold text-text-main">📚 My Books</h2>
@@ -202,8 +200,8 @@ export default function StudentBooksPage() {
                             key={cat}
                             onClick={() => setSelectedCategory(cat)}
                             className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${selectedCategory === cat
-                                    ? 'bg-primary text-white'
-                                    : 'bg-gray-100 text-text-muted hover:bg-gray-200'
+                                ? 'bg-primary text-white'
+                                : 'bg-gray-100 text-text-muted hover:bg-gray-200'
                                 }`}
                         >
                             {cat}

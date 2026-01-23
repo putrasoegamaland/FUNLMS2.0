@@ -174,6 +174,8 @@ function BookModal({ book, classes, teacherId, refetchBooks, onClose, onSave }) 
         title: book?.title || '',
         author: book?.author || '',
         description: book?.description || '',
+        content_text: book?.content_text || '',
+        category: book?.category || '',
         cover_emoji: book?.cover_emoji || '📖',
         class_id: book?.class_id || '',
         pdf_data: book?.pdf_data || null,
@@ -288,6 +290,17 @@ function BookModal({ book, classes, teacherId, refetchBooks, onClose, onSave }) 
                         </div>
 
                         <div>
+                            <label className="block text-sm font-medium text-text-main mb-1">Category</label>
+                            <input
+                                type="text"
+                                value={formData.category}
+                                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                                placeholder="e.g., Science, Math, Reading, Art"
+                                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary outline-none"
+                            />
+                        </div>
+
+                        <div>
                             <label className="block text-sm font-medium text-text-main mb-1">Description</label>
                             <textarea
                                 value={formData.description}
@@ -295,6 +308,26 @@ function BookModal({ book, classes, teacherId, refetchBooks, onClose, onSave }) 
                                 rows={3}
                                 className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary outline-none resize-none"
                             />
+                        </div>
+
+                        {/* Book Content for AI */}
+                        <div>
+                            <label className="block text-sm font-medium text-text-main mb-1">
+                                📖 Book Content (for AI Helper)
+                            </label>
+                            <p className="text-xs text-text-muted mb-2">
+                                Paste or type the main text content from the book. The AI will use this to help students understand the book.
+                            </p>
+                            <textarea
+                                value={formData.content_text}
+                                onChange={(e) => setFormData({ ...formData, content_text: e.target.value })}
+                                rows={6}
+                                placeholder="Paste the book's text content here so the AI can help students learn from it..."
+                                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary outline-none resize-none text-sm"
+                            />
+                            <p className="text-xs text-text-muted mt-1">
+                                {formData.content_text?.length || 0} characters
+                            </p>
                         </div>
 
                         {/* PDF Upload */}

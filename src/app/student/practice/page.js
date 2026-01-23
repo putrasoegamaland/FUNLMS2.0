@@ -511,14 +511,14 @@ function PracticeQuizContent() {
                                             key={option.id}
                                             onClick={() => handleAnswer(question.id, option.id)}
                                             className={`w-full p-4 rounded-xl border-2 text-left transition-all ${answers[question.id] === option.id
-                                                ? 'border-primary bg-primary/10'
-                                                : 'border-gray-200 hover:border-gray-300'
+                                                ? 'border-primary bg-primary/10 text-text-main'
+                                                : 'border-gray-200 hover:border-gray-300 bg-white text-text-main'
                                                 }`}
                                         >
                                             {option.image ? (
                                                 <img src={option.image} alt="Option" className="h-16 rounded" />
                                             ) : (
-                                                <span className="font-medium">{option.text || `Option ${option.id}`}</span>
+                                                <span className="font-medium text-gray-900">{option.text || `Option ${option.id}`}</span>
                                             )}
                                         </button>
                                     ))}
@@ -533,7 +533,7 @@ function PracticeQuizContent() {
                                         onChange={(e) => handleTextAnswer(question.id, e.target.value)}
                                         placeholder="Type your answer here..."
                                         rows={4}
-                                        className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-primary outline-none resize-none"
+                                        className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-primary outline-none resize-none bg-white text-gray-900 placeholder-gray-400"
                                     />
 
                                     {/* Drawing Canvas (if enabled) */}

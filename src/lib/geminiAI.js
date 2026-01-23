@@ -249,21 +249,56 @@ export async function askAboutMaterial(userQuestion, material, studentLevel = 'e
 
         const levelDesc = levelDescriptions[studentLevel] || levelDescriptions.elementary;
 
-        const prompt = `You are a friendly, encouraging AI tutor helping ${levelDesc} learn.
+        // Build comprehensive book context
+        let bookContext = '';
+        if (material) {
+            bookContext = `📚 Book Title: "${material.title || 'Unknown Book'}"`;
 
-The student is currently learning about:
-📚 Topic: "${material.title || 'General Learning'}"
-📝 Description: "${material.description || 'A learning topic'}"
+            if (material.author) {
+                bookContext += `\n✍️ Author: ${material.author}`;
+            }
+
+            if (material.description) {
+                bookContext += `\n📝 Book Summary: ${material.description}`;
+            }
+
+            if (material.subject) {
+                bookContext += `\n📖 Subject: ${material.subject}`;
+            }
+
+            // Include the actual book content if available (content_text field)
+            if (material.content_text) {
+                // Limit to first 3000 chars to avoid token limits while giving AI enough context
+                const contentPreview = material.content_text.length > 3000
+                    ? material.content_text.substring(0, 3000) + '\n...[more content in book]'
+                    : material.content_text;
+                bookContext += `\n\n📄 FULL BOOK CONTENT:\n${contentPreview}`;
+            }
+
+            // Add any educational notes
+            bookContext += `\n\nIMPORTANT: Use the FULL BOOK CONTENT above to answer questions. The AI should:
+- Reference SPECIFIC parts of the book content when answering
+- Quote or paraphrase actual passages from the book
+- Help the student understand what they read
+- If asked about specific pages or parts, use the content provided`;
+        }
+
+        const prompt = `You are a friendly, encouraging AI tutor helping ${levelDesc} learn from a book.
+
+The student is reading:
+${bookContext || 'A learning book'}
 
 The student asks: "${userQuestion}"
 
 Provide a helpful, educational response that:
 1. Uses simple words a child can understand
 2. Is encouraging and positive
-3. Relates to the learning material when possible
-4. Is 2-3 sentences maximum
-5. Uses emojis to make it fun and engaging
-6. Does NOT provide answers to test/quiz questions directly
+3. RELATES DIRECTLY to the book's content, themes, and educational goals
+4. Explains concepts from the book if the student asks about them
+5. Is 2-4 sentences maximum
+6. Uses emojis to make it fun and engaging
+7. Does NOT provide direct answers to test/quiz questions
+8. Encourages the student to explore the book further
 
 Respond with ONLY your answer, nothing else.`;
 

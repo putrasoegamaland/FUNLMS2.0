@@ -20,9 +20,20 @@ export default function StudentBooksPage() {
     // Filter books for enrolled classes
     const books = useMemo(() => {
         const classIds = allEnrollments.map(e => e.class_id);
-        return allBooks.filter(b =>
-            (b.class_id && classIds.includes(b.class_id)) || !b.class_id
-        );
+        console.log('Student enrollments (class IDs):', classIds);
+        console.log('All books:', allBooks.map(b => ({ id: b.id, title: b.title, class_id: b.class_id })));
+
+        const filteredBooks = allBooks.filter(b => {
+            // Show books that either:
+            // 1. Are assigned to one of the student's enrolled classes
+            // 2. Have no class restriction (class_id is null/undefined)
+            const isAssignedToMyClass = b.class_id && classIds.includes(b.class_id);
+            const isPublic = !b.class_id;
+            return isAssignedToMyClass || isPublic;
+        });
+
+        console.log('Filtered books for student:', filteredBooks.length);
+        return filteredBooks;
     }, [allEnrollments, allBooks]);
 
     // Loading state
@@ -37,22 +48,54 @@ export default function StudentBooksPage() {
         );
     }
 
-    // PDF Viewer
+    // PDF Viewer - Open in new tab since embedded base64 PDFs often fail
     if (viewingPDF && selectedBook?.pdf_data) {
+        // Ensure proper data URL format for PDFs
+        const pdfSrc = selectedBook.pdf_data.startsWith('data:')
+            ? selectedBook.pdf_data
+            : `data:application/pdf;base64,${selectedBook.pdf_data}`;
+
         return (
-            <div className="fixed inset-0 bg-black z-50 flex flex-col">
-                <header className="bg-gray-900 p-4 flex items-center gap-4">
+            <div className="fixed inset-0 bg-white z-50 flex flex-col">
+                <header className="bg-gray-900 p-4 flex items-center gap-4 shrink-0">
                     <button onClick={() => setViewingPDF(false)}>
                         <span className="material-symbols-outlined text-white">close</span>
                     </button>
-                    <h2 className="text-white font-bold truncate">{selectedBook.title}</h2>
+                    <h2 className="text-white font-bold truncate flex-1">{selectedBook.title}</h2>
                 </header>
-                <div className="flex-1 overflow-auto">
-                    <iframe
-                        src={selectedBook.pdf_data}
-                        className="w-full h-full min-h-[80vh]"
-                        title={selectedBook.title}
-                    />
+
+                <div className="flex-1 flex flex-col items-center justify-center p-8 bg-gray-100">
+                    <div className="text-8xl mb-6">📄</div>
+                    <h3 className="text-xl font-bold text-text-main mb-2">{selectedBook.title}</h3>
+                    <p className="text-text-muted mb-6 text-center">
+                        PDF documents open best in a separate viewer
+                    </p>
+
+                    <div className="flex flex-col gap-3 w-full max-w-xs">
+                        <a
+                            href={pdfSrc}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="w-full py-4 bg-primary text-white font-bold rounded-xl flex items-center justify-center gap-2 hover:opacity-90"
+                        >
+                            <span className="material-symbols-outlined">open_in_new</span>
+                            Open PDF in New Tab
+                        </a>
+                        <a
+                            href={pdfSrc}
+                            download={`${selectedBook.title}.pdf`}
+                            className="w-full py-4 bg-gray-200 text-text-main font-bold rounded-xl flex items-center justify-center gap-2 hover:bg-gray-300"
+                        >
+                            <span className="material-symbols-outlined">download</span>
+                            Download PDF
+                        </a>
+                        <button
+                            onClick={() => setViewingPDF(false)}
+                            className="w-full py-3 text-text-muted font-medium"
+                        >
+                            Go Back
+                        </button>
+                    </div>
                 </div>
             </div>
         );
@@ -117,7 +160,9 @@ export default function StudentBooksPage() {
                     onClose={() => setShowAskAI(false)}
                     material={{
                         title: selectedBook.title,
+                        author: selectedBook.author,
                         description: selectedBook.description || `A book by ${selectedBook.author || 'Unknown Author'}`,
+                        content_text: selectedBook.content_text,
                     }}
                 />
             </div>
@@ -126,13 +171,50 @@ export default function StudentBooksPage() {
 
     const bookColors = ['bg-yellow-400', 'bg-pink-400', 'bg-blue-400', 'bg-green-400', 'bg-purple-400', 'bg-orange-400'];
 
+    // Get unique categories from books
+    const categories = useMemo(() => {
+        const cats = new Set(['All']);
+        books.forEach(book => {
+            if (book.category) cats.add(book.category);
+            // Also check for subject as a fallback category
+            if (book.subject) cats.add(book.subject);
+        });
+        return Array.from(cats);
+    }, [books]);
+
+    const [selectedCategory, setSelectedCategory] = useState('All');
+
+    // Filter books by selected category
+    const filteredBooks = useMemo(() => {
+        if (selectedCategory === 'All') return books;
+        return books.filter(b => b.category === selectedCategory || b.subject === selectedCategory);
+    }, [books, selectedCategory]);
+
     return (
-        <div className="p-4 space-y-4">
+        <div className="p-4 space-y-4 pb-24">
             <h2 className="text-lg font-bold text-text-main">📚 My Books</h2>
 
-            {books.length > 0 ? (
+            {/* Category Filter */}
+            {categories.length > 1 && (
+                <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
+                    {categories.map((cat) => (
+                        <button
+                            key={cat}
+                            onClick={() => setSelectedCategory(cat)}
+                            className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${selectedCategory === cat
+                                    ? 'bg-primary text-white'
+                                    : 'bg-gray-100 text-text-muted hover:bg-gray-200'
+                                }`}
+                        >
+                            {cat}
+                        </button>
+                    ))}
+                </div>
+            )}
+
+            {filteredBooks.length > 0 ? (
                 <div className="grid grid-cols-2 gap-3">
-                    {books.map((book, i) => (
+                    {filteredBooks.map((book, i) => (
                         <button
                             key={book.id}
                             onClick={() => setSelectedBook(book)}
@@ -148,6 +230,9 @@ export default function StudentBooksPage() {
                                 <h3 className="font-bold text-white text-sm leading-tight">{book.title}</h3>
                                 {book.author && (
                                     <p className="text-xs text-white/80">{book.author}</p>
+                                )}
+                                {(book.category || book.subject) && (
+                                    <p className="text-xs text-white/60 mt-0.5">{book.category || book.subject}</p>
                                 )}
                             </div>
                         </button>

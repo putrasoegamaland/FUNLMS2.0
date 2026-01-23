@@ -65,10 +65,10 @@ export default function StudentLayout({ children }) {
             <nav className="fixed bottom-0 left-0 right-0 bg-card-light border-t border-gray-100 pb-safe z-50">
                 <div className="max-w-md mx-auto flex justify-around items-center py-2">
                     <NavItem href="/student/learn" icon="home" label="Home" />
+                    <NavItem href="/student/books" icon="menu_book" label="Books" />
                     <NavItem href="/student/videos" icon="play_circle" label="Videos" />
                     <NavItem href="/student/assignments" icon="assignment" label="Tasks" />
                     <NavItem href="/student/games" icon="sports_esports" label="Games" />
-                    <NavItem href="/student/quests" icon="leaderboard" label="Rank" />
                     <NavItem href="/student/profile" icon="person" label="Me" />
                 </div>
             </nav>

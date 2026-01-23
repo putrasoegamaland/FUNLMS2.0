@@ -52,6 +52,10 @@ ALTER TABLE attempts ADD COLUMN IF NOT EXISTS completed_at TIMESTAMPTZ DEFAULT N
 ALTER TABLE attempts ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
 ALTER TABLE attempts ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
 
+-- 6.5. Add content_text and category to books for AI understanding
+ALTER TABLE books ADD COLUMN IF NOT EXISTS content_text TEXT;
+ALTER TABLE books ADD COLUMN IF NOT EXISTS category TEXT;
+
 -- 7. Enforce single enrollment per student (one class at a time)
 -- First, remove any duplicate enrollments keeping only the latest
 DELETE FROM enrollments a USING enrollments b

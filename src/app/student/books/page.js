@@ -73,13 +73,22 @@ export default function StudentBooksPage() {
             : `data:application/pdf;base64,${selectedBook.pdf_data}`;
 
         return (
-            <div className="fixed inset-0 bg-gray-900 z-50 flex flex-col">
+            <div className="fixed inset-0 bg-gray-100 z-[100] flex flex-col">
                 {/* Header */}
-                <header className="bg-gray-800 p-3 flex items-center gap-3 shrink-0 border-b border-gray-700">
+                <header className="bg-gray-800 p-3 flex items-center gap-3 shrink-0">
                     <button onClick={() => setViewingPDF(false)} className="p-2 hover:bg-gray-700 rounded-lg">
-                        <span className="material-symbols-outlined text-white">close</span>
+                        <span className="material-symbols-outlined text-white">arrow_back</span>
                     </button>
                     <h2 className="text-white font-bold truncate flex-1 text-sm">{selectedBook.title}</h2>
+                    {isGeminiConfigured() && (
+                        <button
+                            onClick={() => setShowAskAI(true)}
+                            className="md:hidden p-2 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg"
+                            title="Ask AI"
+                        >
+                            <span className="text-white">🤖</span>
+                        </button>
+                    )}
                     <a
                         href={pdfSrc}
                         download={`${selectedBook.title}.pdf`}
@@ -102,88 +111,98 @@ export default function StudentBooksPage() {
                 {/* Main content area */}
                 <div className="flex-1 flex overflow-hidden">
                     {/* PDF Viewer */}
-                    <div className="flex-1 bg-gray-800 relative">
-                        {/* Try embedded PDF first */}
-                        <iframe
-                            src={pdfSrc}
-                            className="w-full h-full border-none"
-                            title={selectedBook.title}
-                            style={{ minHeight: '100%' }}
-                        />
-
-                        {/* Fallback message if iframe fails */}
-                        <div className="absolute bottom-4 left-4 right-4 bg-gray-900/90 backdrop-blur rounded-xl p-3 text-center text-white text-sm">
-                            <p>Kalau PDF tidak tampil,
-                                <a href={pdfSrc} target="_blank" rel="noopener noreferrer" className="text-blue-400 underline ml-1">
-                                    buka di tab baru
+                    <div className="flex-1 bg-white relative flex flex-col">
+                        {/* PDF embed using object tag */}
+                        <object
+                            data={pdfSrc}
+                            type="application/pdf"
+                            className="flex-1 w-full"
+                        >
+                            {/* Fallback if PDF doesn't display */}
+                            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
+                                <div className="text-6xl mb-4">📄</div>
+                                <h3 className="text-lg font-bold text-text-main mb-2">
+                                    {selectedBook.title}
+                                </h3>
+                                <p className="text-text-muted mb-6">
+                                    PDF tidak dapat ditampilkan di browser ini
+                                </p>
+                                <a
+                                    href={pdfSrc}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="px-6 py-3 bg-primary text-white font-bold rounded-xl flex items-center gap-2"
+                                >
+                                    <span className="material-symbols-outlined">open_in_new</span>
+                                    Buka PDF di Tab Baru
                                 </a>
-                            </p>
-                        </div>
+                                <a
+                                    href={pdfSrc}
+                                    download={`${selectedBook.title}.pdf`}
+                                    className="mt-3 px-6 py-3 bg-gray-200 text-text-main font-medium rounded-xl flex items-center gap-2"
+                                >
+                                    <span className="material-symbols-outlined">download</span>
+                                    Download PDF
+                                </a>
+                            </div>
+                        </object>
                     </div>
 
-                    {/* AI Sidebar - Always visible on desktop, toggle on mobile */}
+                    {/* Desktop: Fixed AI sidebar */}
                     {isGeminiConfigured() && (
-                        <>
-                            {/* Mobile: Floating AI button */}
-                            <button
-                                onClick={() => setShowAskAI(!showAskAI)}
-                                className="md:hidden fixed bottom-20 right-4 w-14 h-14 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full shadow-lg flex items-center justify-center z-10"
-                            >
-                                <span className="text-2xl">{showAskAI ? '✕' : '🤖'}</span>
-                            </button>
-
-                            {/* Mobile: Slide-up AI panel */}
-                            {showAskAI && (
-                                <div className="md:hidden fixed inset-x-0 bottom-0 h-[60vh] bg-white rounded-t-3xl shadow-2xl z-20 flex flex-col">
-                                    <div className="p-4 border-b flex items-center justify-between">
-                                        <h3 className="font-bold text-text-main flex items-center gap-2">
-                                            <span>🤖</span> Ask AI Helper
-                                        </h3>
-                                        <button onClick={() => setShowAskAI(false)} className="p-2">
-                                            <span className="material-symbols-outlined">close</span>
-                                        </button>
-                                    </div>
-                                    <div className="flex-1 overflow-hidden">
-                                        <AskAIModal
-                                            isOpen={true}
-                                            onClose={() => setShowAskAI(false)}
-                                            material={{
-                                                title: selectedBook.title,
-                                                author: selectedBook.author,
-                                                description: selectedBook.description,
-                                                content_text: selectedBook.content_text,
-                                            }}
-                                            embedded={true}
-                                        />
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Desktop: Fixed sidebar */}
-                            <div className="hidden md:flex w-80 bg-white border-l border-gray-200 flex-col">
-                                <div className="p-4 border-b bg-gradient-to-r from-purple-500 to-blue-500">
-                                    <h3 className="font-bold text-white flex items-center gap-2">
-                                        <span>🤖</span> Ask AI Helper
-                                    </h3>
-                                    <p className="text-white/80 text-xs mt-1">Ask questions about this book</p>
-                                </div>
-                                <div className="flex-1 overflow-hidden">
-                                    <AskAIModal
-                                        isOpen={true}
-                                        onClose={() => { }}
-                                        material={{
-                                            title: selectedBook.title,
-                                            author: selectedBook.author,
-                                            description: selectedBook.description,
-                                            content_text: selectedBook.content_text,
-                                        }}
-                                        embedded={true}
-                                    />
-                                </div>
+                        <div className="hidden md:flex w-80 bg-white border-l border-gray-200 flex-col">
+                            <div className="p-4 border-b bg-gradient-to-r from-purple-500 to-blue-500">
+                                <h3 className="font-bold text-white flex items-center gap-2">
+                                    <span>🤖</span> Ask AI Helper
+                                </h3>
+                                <p className="text-white/80 text-xs mt-1">Ask questions about this book</p>
                             </div>
-                        </>
+                            <div className="flex-1 overflow-hidden">
+                                <AskAIModal
+                                    isOpen={true}
+                                    onClose={() => { }}
+                                    material={{
+                                        title: selectedBook.title,
+                                        author: selectedBook.author,
+                                        description: selectedBook.description,
+                                        content_text: selectedBook.content_text,
+                                    }}
+                                    embedded={true}
+                                />
+                            </div>
+                        </div>
                     )}
                 </div>
+
+                {/* Mobile: Fullscreen AI panel */}
+                {showAskAI && isGeminiConfigured() && (
+                    <div className="md:hidden fixed inset-0 bg-white z-[101] flex flex-col">
+                        <header className="bg-gradient-to-r from-purple-500 to-blue-500 p-4 flex items-center gap-3">
+                            <button onClick={() => setShowAskAI(false)} className="p-2 hover:bg-white/20 rounded-lg">
+                                <span className="material-symbols-outlined text-white">arrow_back</span>
+                            </button>
+                            <div>
+                                <h3 className="font-bold text-white flex items-center gap-2">
+                                    <span>🤖</span> Ask AI Helper
+                                </h3>
+                                <p className="text-white/80 text-xs">{selectedBook.title}</p>
+                            </div>
+                        </header>
+                        <div className="flex-1 overflow-hidden">
+                            <AskAIModal
+                                isOpen={true}
+                                onClose={() => setShowAskAI(false)}
+                                material={{
+                                    title: selectedBook.title,
+                                    author: selectedBook.author,
+                                    description: selectedBook.description,
+                                    content_text: selectedBook.content_text,
+                                }}
+                                embedded={true}
+                            />
+                        </div>
+                    </div>
+                )}
             </div>
         );
     }

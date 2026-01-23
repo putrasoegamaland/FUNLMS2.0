@@ -1,10 +1,35 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useBooks, useEnrollments } from '@/hooks/useSupabaseData';
 import AskAIModal from '@/components/AskAIModal';
 import { isGeminiConfigured } from '@/lib/geminiAI';
+
+// Convert base64 data URL to Blob URL (browsers handle this better)
+function base64ToBlobUrl(base64Data) {
+    try {
+        // Remove data URL prefix if present
+        const base64String = base64Data.includes(',')
+            ? base64Data.split(',')[1]
+            : base64Data;
+
+        // Decode base64
+        const byteCharacters = atob(base64String);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+
+        // Create blob and URL
+        const blob = new Blob([byteArray], { type: 'application/pdf' });
+        return URL.createObjectURL(blob);
+    } catch (error) {
+        console.error('Error converting base64 to blob:', error);
+        return null;
+    }
+}
 
 export default function StudentBooksPage() {
     const { user } = useAuth();
@@ -67,10 +92,15 @@ export default function StudentBooksPage() {
 
     // PDF Reader with embedded viewer and AI sidebar
     if (viewingPDF && selectedBook?.pdf_data) {
-        // Ensure proper data URL format for PDFs
-        const pdfSrc = selectedBook.pdf_data.startsWith('data:')
+        // Convert base64 to Blob URL (browsers block large data URLs)
+        const pdfBlobUrl = base64ToBlobUrl(selectedBook.pdf_data);
+        // Fallback to data URL for download if blob fails
+        const pdfDataUrl = selectedBook.pdf_data.startsWith('data:')
             ? selectedBook.pdf_data
             : `data:application/pdf;base64,${selectedBook.pdf_data}`;
+
+        // Use blob URL if available, otherwise data URL
+        const pdfSrc = pdfBlobUrl || pdfDataUrl;
 
         return (
             <div className="fixed inset-0 bg-gray-100 z-[100] flex flex-col">

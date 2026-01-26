@@ -3,21 +3,21 @@
 -- Run this SQL in Supabase SQL Editor AFTER running the schema
 
 -- =====================================================
--- CLEAR EXISTING DATA (optional - uncomment if needed)
+-- CLEAR EXISTING DATA (required for fresh start)
 -- =====================================================
--- DELETE FROM video_progress;
--- DELETE FROM submissions;
--- DELETE FROM attempts;
--- DELETE FROM progress;
--- DELETE FROM enrollments;
--- DELETE FROM books;
--- DELETE FROM videos;
--- DELETE FROM assessments;
--- DELETE FROM assignments;
--- DELETE FROM badges;
--- DELETE FROM classes;
--- DELETE FROM subjects;
--- DELETE FROM users WHERE username != 'admin';
+DELETE FROM video_progress;
+DELETE FROM submissions;
+DELETE FROM attempts;
+DELETE FROM progress;
+DELETE FROM enrollments;
+DELETE FROM books;
+DELETE FROM videos;
+DELETE FROM assessments;
+DELETE FROM assignments;
+DELETE FROM badges;
+DELETE FROM classes;
+DELETE FROM subjects;
+DELETE FROM users;
 
 -- =====================================================
 -- USERS: Admin, Teachers, and 2 Generations of Students
@@ -36,27 +36,27 @@ INSERT INTO users (id, username, name, password, role, avatar) VALUES
 ON CONFLICT (username) DO NOTHING;
 
 -- Generation 1: Grade 1 Students (younger, basic level)
-INSERT INTO users (id, username, name, password, role, avatar) VALUES
-('00000000-0000-0000-0001-000000000001', 'alex', 'Alex', 'alex123', 'student', '🦁'),
-('00000000-0000-0000-0001-000000000002', 'emma', 'Emma', 'emma123', 'student', '🦊'),
-('00000000-0000-0000-0001-000000000003', 'leo', 'Leo', '1234', 'student', '🐼'),
-('00000000-0000-0000-0001-000000000004', 'mia', 'Mia', 'mia123', 'student', '🐰'),
-('00000000-0000-0000-0001-000000000005', 'noah', 'Noah', 'noah123', 'student', '🐸'),
-('00000000-0000-0000-0001-000000000006', 'sofia', 'Sofia', 'sofia123', 'student', '🦋'),
-('00000000-0000-0000-0001-000000000007', 'liam', 'Liam', 'liam123', 'student', '🐶'),
-('00000000-0000-0000-0001-000000000008', 'ava', 'Ava', 'ava123', 'student', '🐱')
+INSERT INTO users (id, username, name, password, role, avatar, generation) VALUES
+('00000000-0000-0000-0001-000000000001', 'alex', 'Alex', 'alex123', 'student', '🦁', '2025'),
+('00000000-0000-0000-0001-000000000002', 'emma', 'Emma', 'emma123', 'student', '🦊', '2025'),
+('00000000-0000-0000-0001-000000000003', 'leo', 'Leo', '1234', 'student', '🐼', '2025'),
+('00000000-0000-0000-0001-000000000004', 'mia', 'Mia', 'mia123', 'student', '🐰', '2025'),
+('00000000-0000-0000-0001-000000000005', 'noah', 'Noah', 'noah123', 'student', '🐸', '2025'),
+('00000000-0000-0000-0001-000000000006', 'sofia', 'Sofia', 'sofia123', 'student', '🦋', '2025'),
+('00000000-0000-0000-0001-000000000007', 'liam', 'Liam', 'liam123', 'student', '🐶', '2025'),
+('00000000-0000-0000-0001-000000000008', 'ava', 'Ava', 'ava123', 'student', '🐱', '2025')
 ON CONFLICT (username) DO NOTHING;
 
--- Generation 2: Grade 2 Students (older, more advanced)
-INSERT INTO users (id, username, name, password, role, avatar) VALUES
-('00000000-0000-0000-0002-000000000001', 'jack', 'Jack', 'jack123', 'student', '🦖'),
-('00000000-0000-0000-0002-000000000002', 'chloe', 'Chloe', 'chloe123', 'student', '🦄'),
-('00000000-0000-0000-0002-000000000003', 'ryan', 'Ryan', 'ryan123', 'student', '🐻'),
-('00000000-0000-0000-0002-000000000004', 'lily', 'Lily', 'lily123', 'student', '🌸'),
-('00000000-0000-0000-0002-000000000005', 'ethan', 'Ethan', 'ethan123', 'student', '🚀'),
-('00000000-0000-0000-0002-000000000006', 'grace', 'Grace', 'grace123', 'student', '🌈'),
-('00000000-0000-0000-0002-000000000007', 'mason', 'Mason', 'mason123', 'student', '🎸'),
-('00000000-0000-0000-0002-000000000008', 'zoe', 'Zoe', 'zoe123', 'student', '🦩')
+-- Generation 2: Grade 2 Students (older, more advanced - previous year)
+INSERT INTO users (id, username, name, password, role, avatar, generation) VALUES
+('00000000-0000-0000-0002-000000000001', 'jack', 'Jack', 'jack123', 'student', '🦖', '2024'),
+('00000000-0000-0000-0002-000000000002', 'chloe', 'Chloe', 'chloe123', 'student', '🦄', '2024'),
+('00000000-0000-0000-0002-000000000003', 'ryan', 'Ryan', 'ryan123', 'student', '🐻', '2024'),
+('00000000-0000-0000-0002-000000000004', 'lily', 'Lily', 'lily123', 'student', '🌸', '2024'),
+('00000000-0000-0000-0002-000000000005', 'ethan', 'Ethan', 'ethan123', 'student', '🚀', '2024'),
+('00000000-0000-0000-0002-000000000006', 'grace', 'Grace', 'grace123', 'student', '🌈', '2024'),
+('00000000-0000-0000-0002-000000000007', 'mason', 'Mason', 'mason123', 'student', '🎸', '2024'),
+('00000000-0000-0000-0002-000000000008', 'zoe', 'Zoe', 'zoe123', 'student', '🦩', '2024')
 ON CONFLICT (username) DO NOTHING;
 
 -- =====================================================

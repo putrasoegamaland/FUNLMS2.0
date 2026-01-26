@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS users (
     password TEXT NOT NULL,
     role TEXT NOT NULL CHECK (role IN ('admin', 'teacher', 'student')),
     avatar TEXT DEFAULT '👤',
+    generation TEXT, -- e.g., 'Grade 1', 'Grade 2', '2024', '2025'
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );

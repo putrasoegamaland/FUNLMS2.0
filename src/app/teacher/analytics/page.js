@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useClasses, useUsers, useEnrollments, useAttempts, useSubjects } from '@/hooks/useSupabaseData';
+import { useClasses, useUsers, useEnrollments, useAttempts, useSubjects, useAllProgress } from '@/hooks/useSupabaseData';
 import { RadarChart } from '@/components/charts/RadarChart';
 import { TrendChart } from '@/components/charts/TrendChart';
 import { Heatmap } from '@/components/charts/Heatmap';
@@ -14,13 +14,14 @@ export default function TeacherAnalyticsPage() {
     const { data: allEnrollments, loading: enrollmentsLoading } = useEnrollments();
     const { data: allAttempts, loading: attemptsLoading } = useAttempts();
     const { data: subjects, loading: subjectsLoading } = useSubjects();
+    const { data: allProgress, loading: progressLoading } = useAllProgress();
 
     const [activeTab, setActiveTab] = useState('students');
     const [selectedClass, setSelectedClass] = useState(null);
     const [selectedStudent, setSelectedStudent] = useState(null);
     const [students, setStudents] = useState([]);
 
-    const isLoading = classesLoading || usersLoading || enrollmentsLoading || attemptsLoading || subjectsLoading;
+    const isLoading = classesLoading || usersLoading || enrollmentsLoading || attemptsLoading || subjectsLoading || progressLoading;
 
     // Get unique generations from students
     const generations = useMemo(() => {
@@ -41,7 +42,7 @@ export default function TeacherAnalyticsPage() {
         if (selectedClass && allEnrollments.length > 0) {
             loadClassStudents(selectedClass.id);
         }
-    }, [selectedClass, allEnrollments, allUsers, allAttempts, subjects]);
+    }, [selectedClass, allEnrollments, allUsers, allAttempts, subjects, allProgress]);
 
     const loadClassStudents = (classId) => {
         const classEnrollments = allEnrollments.filter(e => e.class_id === classId);
@@ -49,9 +50,15 @@ export default function TeacherAnalyticsPage() {
             const student = allUsers.find(u => u.id === e.student_id);
             if (!student) return null;
 
-            const attempts = allAttempts.filter(a => a.student_id === e.student_id);
+            const attempts = allAttempts.filter(a => a.user_id === e.student_id);
 
-            // Calculate subject performance
+            // Get progress data from progress table (this is where XP is stored)
+            const studentProgress = allProgress.find(p => p.user_id === e.student_id);
+            const totalXp = studentProgress?.total_xp || 0;
+            const level = studentProgress?.level || 1;
+            const subjectXp = studentProgress?.subject_xp || {};
+
+            // Calculate subject performance from attempts
             const subjectScores = {};
             subjects.forEach(s => {
                 const subjectAttempts = attempts.filter(a => a.subject_id === s.id);
@@ -61,13 +68,9 @@ export default function TeacherAnalyticsPage() {
                 }
             });
 
-            // Get progress data from student record or calculate from attempts
-            const totalXp = attempts.reduce((sum, a) => sum + (a.xp_earned || 0), 0);
-            const level = Math.floor(totalXp / 100) + 1;
-
             return {
                 ...student,
-                progress: { level, totalXp },
+                progress: { level, totalXp, subjectXp },
                 attempts,
                 subjectScores,
                 quizCount: attempts.length,
@@ -83,20 +86,30 @@ export default function TeacherAnalyticsPage() {
     const getGenerationStats = (gen) => {
         const genStudents = allUsers.filter(u => u.role === 'student' && u.generation === gen);
 
-        const stats = { totalStudents: genStudents.length, subjects: {} };
+        const stats = { totalStudents: genStudents.length, subjects: {}, totalXp: 0 };
 
+        // Calculate total XP from progress table
+        genStudents.forEach(student => {
+            const studentProgress = allProgress.find(p => p.user_id === student.id);
+            stats.totalXp += studentProgress?.total_xp || 0;
+        });
+
+        // Calculate per-subject XP from progress table's subject_xp field
         subjects.forEach(subject => {
-            let totalXp = 0;
+            let totalSubjectXp = 0;
             genStudents.forEach(student => {
-                const studentAttempts = allAttempts.filter(a => a.student_id === student.id && a.subject_id === subject.id);
-                totalXp += studentAttempts.reduce((sum, a) => sum + (a.xp_earned || 0), 0);
+                const studentProgress = allProgress.find(p => p.user_id === student.id);
+                const subjectXp = studentProgress?.subject_xp || {};
+                totalSubjectXp += subjectXp[subject.id] || 0;
             });
             stats.subjects[subject.id] = {
                 name: subject.name,
                 emoji: subject.emoji,
-                avgXp: genStudents.length > 0 ? Math.round(totalXp / genStudents.length) : 0,
+                avgXp: genStudents.length > 0 ? Math.round(totalSubjectXp / genStudents.length) : 0,
             };
         });
+
+        stats.avgXp = genStudents.length > 0 ? Math.round(stats.totalXp / genStudents.length) : 0;
 
         return stats;
     };

@@ -153,6 +153,11 @@ export function useProgress(userId) {
     });
 }
 
+// Fetch all progress records (for analytics)
+export function useAllProgress() {
+    return useSupabaseQuery('progress');
+}
+
 // Single item hooks
 export function useUser(id) {
     return useSupabaseItem('users', id);

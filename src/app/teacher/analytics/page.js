@@ -260,6 +260,7 @@ export default function TeacherAnalyticsPage() {
                         <StudentDetail
                             student={selectedStudent}
                             subjects={subjects}
+                            allAssessments={allAssessments}
                             onBack={() => setSelectedStudent(null)}
                         />
                     ) : (
@@ -441,7 +442,7 @@ function StatCard({ label, value, icon }) {
     );
 }
 
-function StudentDetail({ student, subjects, onBack }) {
+function StudentDetail({ student, subjects, allAssessments, onBack }) {
     const attempts = student.attempts || [];
 
     // Prepare radar chart data
@@ -510,6 +511,38 @@ function StudentDetail({ student, subjects, onBack }) {
                         <div className="h-24 flex items-center justify-center text-text-muted text-xs">
                             No quiz attempts yet
                         </div>
+                    )}
+                </div>
+            </div>
+
+
+            {/* Quiz History */}
+            <div className="bg-card-light rounded-xl p-4 border border-gray-100">
+                <h4 className="font-bold text-text-main mb-3">📝 Completed Quizzes</h4>
+                <div className="space-y-3">
+                    {sortedAttempts.length > 0 ? (
+                        sortedAttempts.slice().reverse().map((attempt) => {
+                            const assessment = allAssessments?.find(a => a.id === attempt.assessment_id);
+                            const subject = subjects?.find(s => s.id === assessment?.subject_id);
+                            const percent = Math.round((attempt.score || 0) / (attempt.total_questions || 1) * 100);
+                            const score = attempt.score || 0; // The actual score is stored in the attempts table, usually it's calculated or stored as percentage depending on implementation. In mock data it seems to be percentage (67, 100). 
+                            // Let's assume 'score' in attempts is the percentage based on mock data.
+
+                            return (
+                                <div key={attempt.id} className="flex items-center gap-4 p-3 bg-white rounded-lg border border-gray-100 shadow-sm">
+                                    <div className="text-2xl">{subject?.emoji || '📝'}</div>
+                                    <div className="flex-1">
+                                        <p className="font-bold text-text-main text-sm">{assessment?.title || 'Unknown Quiz'}</p>
+                                        <p className="text-xs text-text-muted">{new Date(attempt.completed_at).toLocaleDateString()}</p>
+                                    </div>
+                                    <div className={`px-3 py-1 rounded-full text-xs font-bold ${score >= 80 ? 'bg-green-100 text-green-700' : score >= 60 ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}`}>
+                                        {score}%
+                                    </div>
+                                </div>
+                            );
+                        })
+                    ) : (
+                        <p className="text-sm text-text-muted text-center py-4">No quizzes completed yet.</p>
                     )}
                 </div>
             </div>

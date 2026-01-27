@@ -61,15 +61,40 @@ export default function TeacherAnalyticsPage() {
 
             // Calculate subject performance from attempts (lookup subject via assessment)
             const subjectScores = {};
+            const subjectExamScores = {};
+            const subjectQuizScores = {};
+
             subjects.forEach(s => {
                 // Find attempts where the assessment belongs to this subject
                 const subjectAttempts = attempts.filter(a => {
                     const assessment = allAssessments.find(ass => ass.id === a.assessment_id);
                     return assessment?.subject_id === s.id;
                 });
+
                 if (subjectAttempts.length > 0) {
+                    // Overall Average
                     const avgScore = subjectAttempts.reduce((sum, a) => sum + (a.score || 0), 0) / subjectAttempts.length;
                     subjectScores[s.id] = Math.round(avgScore);
+
+                    // Exam Average
+                    const examAttempts = subjectAttempts.filter(a => {
+                        const assessment = allAssessments.find(ass => ass.id === a.assessment_id);
+                        return ['exam', 'written_exam'].includes(assessment?.type);
+                    });
+                    if (examAttempts.length > 0) {
+                        const avgExamScore = examAttempts.reduce((sum, a) => sum + (a.score || 0), 0) / examAttempts.length;
+                        subjectExamScores[s.id] = Math.round(avgExamScore);
+                    }
+
+                    // Quiz/Assignment Average
+                    const quizAttempts = subjectAttempts.filter(a => {
+                        const assessment = allAssessments.find(ass => ass.id === a.assessment_id);
+                        return !['exam', 'written_exam'].includes(assessment?.type);
+                    });
+                    if (quizAttempts.length > 0) {
+                        const avgQuizScore = quizAttempts.reduce((sum, a) => sum + (a.score || 0), 0) / quizAttempts.length;
+                        subjectQuizScores[s.id] = Math.round(avgQuizScore);
+                    }
                 }
             });
 
@@ -78,6 +103,8 @@ export default function TeacherAnalyticsPage() {
                 progress: { level, totalXp, subjectXp },
                 attempts,
                 subjectScores,
+                subjectExamScores,
+                subjectQuizScores,
                 quizCount: attempts.length,
                 avgScore: attempts.length > 0
                     ? Math.round(attempts.reduce((sum, a) => sum + (a.score || 0), 0) / attempts.length)
@@ -554,6 +581,9 @@ function StudentDetail({ student, subjects, allAssessments, onBack }) {
                     {subjects.map((subject) => {
                         const xp = student.progress?.subjectXp?.[subject.id] || 0;
                         const score = student.subjectScores[subject.id];
+                        const examScore = student.subjectExamScores?.[subject.id];
+                        const quizScore = student.subjectQuizScores?.[subject.id];
+
                         const isStrong = xp > 50;
                         const isWeak = xp < 20 && xp > 0;
 
@@ -562,7 +592,13 @@ function StudentDetail({ student, subjects, allAssessments, onBack }) {
                                 <span className="text-xl">{subject.emoji}</span>
                                 <div className="flex-1">
                                     <div className="flex items-center justify-between mb-1">
-                                        <span className="text-sm font-medium text-text-main">{subject.name}</span>
+                                        <div className="flex flex-col">
+                                            <span className="text-sm font-medium text-text-main">{subject.name}</span>
+                                            <div className="flex gap-2 text-[10px] text-text-muted">
+                                                {examScore !== undefined && <span>🏆 Exam: {examScore}%</span>}
+                                                {quizScore !== undefined && <span>📝 Quiz: {quizScore}%</span>}
+                                            </div>
+                                        </div>
                                         <div className="flex items-center gap-2">
                                             {isStrong && <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">Strong</span>}
                                             {isWeak && <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded">Needs Work</span>}

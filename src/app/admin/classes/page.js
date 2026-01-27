@@ -65,7 +65,7 @@ export default function AdminClassesPage() {
         setShowModal(false);
     };
 
-    const levels = ['All', 'Kindergarten', 'Grade 1', 'Grade 2', 'Grade 3'];
+    const levels = ['All', 'Kindergarten', 'Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5', 'Grade 6'];
 
     if (isLoading) {
         return (
@@ -173,6 +173,9 @@ function ClassCard({ classData, onTap }) {
         'Grade 1': 'bg-blue-500',
         'Grade 2': 'bg-green-500',
         'Grade 3': 'bg-purple-500',
+        'Grade 4': 'bg-orange-500',
+        'Grade 5': 'bg-pink-500',
+        'Grade 6': 'bg-teal-500',
     };
 
     return (
@@ -384,6 +387,9 @@ function ClassModal({ classData, users, enrollments, classes, onClose, onSave })
                                 <option>Grade 1</option>
                                 <option>Grade 2</option>
                                 <option>Grade 3</option>
+                                <option>Grade 4</option>
+                                <option>Grade 5</option>
+                                <option>Grade 6</option>
                             </select>
                         </div>
 

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useClasses, useUsers, useEnrollments, useAttempts, useSubjects, useAllProgress } from '@/hooks/useSupabaseData';
+import { useClasses, useUsers, useEnrollments, useAttempts, useSubjects, useAllProgress, useAssessments } from '@/hooks/useSupabaseData';
 import { RadarChart } from '@/components/charts/RadarChart';
 import { TrendChart } from '@/components/charts/TrendChart';
 import { Heatmap } from '@/components/charts/Heatmap';
@@ -15,13 +15,14 @@ export default function TeacherAnalyticsPage() {
     const { data: allAttempts, loading: attemptsLoading } = useAttempts();
     const { data: subjects, loading: subjectsLoading } = useSubjects();
     const { data: allProgress, loading: progressLoading } = useAllProgress();
+    const { data: allAssessments, loading: assessmentsLoading } = useAssessments();
 
     const [activeTab, setActiveTab] = useState('students');
     const [selectedClass, setSelectedClass] = useState(null);
     const [selectedStudent, setSelectedStudent] = useState(null);
     const [students, setStudents] = useState([]);
 
-    const isLoading = classesLoading || usersLoading || enrollmentsLoading || attemptsLoading || subjectsLoading || progressLoading;
+    const isLoading = classesLoading || usersLoading || enrollmentsLoading || attemptsLoading || subjectsLoading || progressLoading || assessmentsLoading;
 
     // Get unique generations from students
     const generations = useMemo(() => {
@@ -42,7 +43,7 @@ export default function TeacherAnalyticsPage() {
         if (selectedClass && allEnrollments.length > 0) {
             loadClassStudents(selectedClass.id);
         }
-    }, [selectedClass, allEnrollments, allUsers, allAttempts, subjects, allProgress]);
+    }, [selectedClass, allEnrollments, allUsers, allAttempts, subjects, allProgress, allAssessments]);
 
     const loadClassStudents = (classId) => {
         const classEnrollments = allEnrollments.filter(e => e.class_id === classId);
@@ -58,10 +59,14 @@ export default function TeacherAnalyticsPage() {
             const level = studentProgress?.level || 1;
             const subjectXp = studentProgress?.subject_xp || {};
 
-            // Calculate subject performance from attempts
+            // Calculate subject performance from attempts (lookup subject via assessment)
             const subjectScores = {};
             subjects.forEach(s => {
-                const subjectAttempts = attempts.filter(a => a.subject_id === s.id);
+                // Find attempts where the assessment belongs to this subject
+                const subjectAttempts = attempts.filter(a => {
+                    const assessment = allAssessments.find(ass => ass.id === a.assessment_id);
+                    return assessment?.subject_id === s.id;
+                });
                 if (subjectAttempts.length > 0) {
                     const avgScore = subjectAttempts.reduce((sum, a) => sum + (a.score || 0), 0) / subjectAttempts.length;
                     subjectScores[s.id] = Math.round(avgScore);

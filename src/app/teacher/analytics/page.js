@@ -470,6 +470,7 @@ function StatCard({ label, value, icon }) {
 }
 
 function StudentDetail({ student, subjects, allAssessments, onBack }) {
+    const [performanceMetric, setPerformanceMetric] = useState('xp'); // 'xp' or 'grade'
     const attempts = student.attempts || [];
 
     // Prepare radar chart data
@@ -483,6 +484,18 @@ function StudentDetail({ student, subjects, allAssessments, onBack }) {
     const sortedAttempts = [...attempts]
         .sort((a, b) => new Date(a.completed_at) - new Date(b.completed_at))
         .slice(-10);
+
+    // Separate Exams and Quizzes
+    const quizAttempts = sortedAttempts.filter(a => {
+        const assessment = allAssessments?.find(ass => ass.id === a.assessment_id);
+        // Default to quiz if type is undefined or not exam
+        return !['exam', 'written_exam'].includes(assessment?.type);
+    }).reverse();
+
+    const examAttempts = sortedAttempts.filter(a => {
+        const assessment = allAssessments?.find(ass => ass.id === a.assessment_id);
+        return ['exam', 'written_exam'].includes(assessment?.type);
+    }).reverse();
 
     const trendData = sortedAttempts.map((attempt, i) => ({
         label: `#${i + 1}`,
@@ -543,12 +556,45 @@ function StudentDetail({ student, subjects, allAssessments, onBack }) {
             </div>
 
 
-            {/* Quiz History */}
+            {/* Completed Exams Section */}
+            <div className="bg-card-light rounded-xl p-4 border border-gray-100">
+                <h4 className="font-bold text-text-main mb-3">🏆 Completed Exams</h4>
+                <div className="space-y-3">
+                    {examAttempts.length > 0 ? (
+                        examAttempts.map((attempt) => {
+                            const assessment = allAssessments?.find(a => a.id === attempt.assessment_id);
+                            const subject = subjects?.find(s => s.id === assessment?.subject_id);
+                            const score = attempt.score || 0;
+
+                            return (
+                                <div key={attempt.id} className="flex items-center gap-4 p-3 bg-yellow-50 rounded-lg border border-yellow-100 shadow-sm">
+                                    <div className="text-2xl">🏆</div>
+                                    <div className="flex-1">
+                                        <p className="font-bold text-text-main text-sm">{assessment?.title || 'Unknown Exam'}</p>
+                                        <div className="flex items-center gap-2 text-xs text-text-muted">
+                                            <span>{subject?.name}</span>
+                                            <span>•</span>
+                                            <span>{new Date(attempt.completed_at).toLocaleDateString()}</span>
+                                        </div>
+                                    </div>
+                                    <div className={`px-3 py-1 rounded-full text-xs font-bold ${score >= 90 ? 'bg-green-100 text-green-700' : score >= 70 ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}`}>
+                                        {score}%
+                                    </div>
+                                </div>
+                            );
+                        })
+                    ) : (
+                        <p className="text-sm text-text-muted text-center py-4">No exams completed yet.</p>
+                    )}
+                </div>
+            </div>
+
+            {/* Completed Quizzes */}
             <div className="bg-card-light rounded-xl p-4 border border-gray-100">
                 <h4 className="font-bold text-text-main mb-3">📝 Completed Quizzes</h4>
                 <div className="space-y-3">
-                    {sortedAttempts.length > 0 ? (
-                        sortedAttempts.slice().reverse().map((attempt) => {
+                    {quizAttempts.length > 0 ? (
+                        quizAttempts.map((attempt) => {
                             const assessment = allAssessments?.find(a => a.id === attempt.assessment_id);
                             const subject = subjects?.find(s => s.id === assessment?.subject_id);
                             const percent = Math.round((attempt.score || 0) / (attempt.total_questions || 1) * 100);
@@ -576,7 +622,23 @@ function StudentDetail({ student, subjects, allAssessments, onBack }) {
 
             {/* Subject Performance */}
             <div className="bg-card-light rounded-xl p-4 border border-gray-100">
-                <h4 className="font-bold text-text-main mb-3">📊 Subject Performance</h4>
+                <div className="flex items-center justify-between mb-3">
+                    <h4 className="font-bold text-text-main">📊 Subject Performance</h4>
+                    <div className="flex bg-gray-100 rounded-lg p-1 gap-1">
+                        <button
+                            onClick={() => setPerformanceMetric('xp')}
+                            className={`px-3 py-1 text-xs font-bold rounded-md transition-colors ${performanceMetric === 'xp' ? 'bg-white shadow-sm text-primary' : 'text-text-muted hover:text-text-main'}`}
+                        >
+                            XP
+                        </button>
+                        <button
+                            onClick={() => setPerformanceMetric('grade')}
+                            className={`px-3 py-1 text-xs font-bold rounded-md transition-colors ${performanceMetric === 'grade' ? 'bg-white shadow-sm text-blue-500' : 'text-text-muted hover:text-text-main'}`}
+                        >
+                            Grades
+                        </button>
+                    </div>
+                </div>
                 <div className="space-y-3">
                     {subjects.map((subject) => {
                         const xp = student.progress?.subjectXp?.[subject.id] || 0;
@@ -600,23 +662,30 @@ function StudentDetail({ student, subjects, allAssessments, onBack }) {
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            {isStrong && <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">Strong</span>}
-                                            {isWeak && <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded">Needs Work</span>}
-                                            <span className="text-xs font-bold text-gray-500">{score !== undefined ? `${score}% Avg` : '-'}</span>
-                                            <span className="text-xs font-bold text-primary">{xp} XP</span>
+                                            {performanceMetric === 'xp' ? (
+                                                <>
+                                                    {isStrong && <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">Strong</span>}
+                                                    {isWeak && <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded">Needs Work</span>}
+                                                    <span className="text-xs font-bold text-primary">{xp} XP</span>
+                                                </>
+                                            ) : (
+                                                <span className="text-xs font-bold text-blue-500">{score !== undefined ? `${score}% Avg` : '-'}</span>
+                                            )}
                                         </div>
                                     </div>
-                                    <div className="h-2 bg-gray-200 rounded-full overflow-hidden flex">
-                                        {/* XP Bar */}
-                                        <div
-                                            className={`h-full rounded-l-full ${isStrong ? 'bg-green-500' : isWeak ? 'bg-red-400' : 'bg-primary'}`}
-                                            style={{ width: `${Math.min(50, xp / 2)}%` }}
-                                        />
-                                        {/* Grade Bar (if score exists) */}
-                                        {score !== undefined && (
+
+                                    <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                                        {performanceMetric === 'xp' ? (
+                                            /* XP Bar */
                                             <div
-                                                className="h-full bg-blue-400 rounded-r-full opacity-70"
-                                                style={{ width: `${Math.min(50, score / 2)}%` }}
+                                                className={`h-full rounded-full transition-all duration-500 ${isStrong ? 'bg-green-500' : isWeak ? 'bg-red-400' : 'bg-primary'}`}
+                                                style={{ width: `${Math.min(100, xp)}%` }}
+                                            />
+                                        ) : (
+                                            /* Grade Bar */
+                                            <div
+                                                className="h-full bg-blue-500 rounded-full transition-all duration-500"
+                                                style={{ width: `${score || 0}%` }}
                                             />
                                         )}
                                     </div>

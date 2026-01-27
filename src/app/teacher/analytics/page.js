@@ -566,14 +566,23 @@ function StudentDetail({ student, subjects, allAssessments, onBack }) {
                                         <div className="flex items-center gap-2">
                                             {isStrong && <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">Strong</span>}
                                             {isWeak && <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded">Needs Work</span>}
+                                            <span className="text-xs font-bold text-gray-500">{score !== undefined ? `${score}% Avg` : '-'}</span>
                                             <span className="text-xs font-bold text-primary">{xp} XP</span>
                                         </div>
                                     </div>
-                                    <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                                    <div className="h-2 bg-gray-200 rounded-full overflow-hidden flex">
+                                        {/* XP Bar */}
                                         <div
-                                            className={`h-full rounded-full ${isStrong ? 'bg-green-500' : isWeak ? 'bg-red-400' : 'bg-primary'}`}
-                                            style={{ width: `${Math.min(100, xp)}%` }}
+                                            className={`h-full rounded-l-full ${isStrong ? 'bg-green-500' : isWeak ? 'bg-red-400' : 'bg-primary'}`}
+                                            style={{ width: `${Math.min(50, xp / 2)}%` }}
                                         />
+                                        {/* Grade Bar (if score exists) */}
+                                        {score !== undefined && (
+                                            <div
+                                                className="h-full bg-blue-400 rounded-r-full opacity-70"
+                                                style={{ width: `${Math.min(50, score / 2)}%` }}
+                                            />
+                                        )}
                                     </div>
                                 </div>
                             </div>

@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useBooks, useEnrollments } from '@/hooks/useSupabaseData';
+import { useBooks, useEnrollments, logStudentActivity } from '@/hooks/useSupabaseData';
 import AskAIModal from '@/components/AskAIModal';
 import { isGeminiConfigured } from '@/lib/geminiAI';
 
@@ -265,7 +265,7 @@ export default function StudentBooksPage() {
 
                     {selectedBook.pdf_data ? (
                         <button
-                            onClick={() => setViewingPDF(true)}
+                            onClick={handleReadBook}
                             className="w-full py-4 bg-primary text-white font-bold rounded-xl flex items-center justify-center gap-2"
                         >
                             <span className="material-symbols-outlined">menu_book</span>
@@ -284,6 +284,18 @@ export default function StudentBooksPage() {
     }
 
     const bookColors = ['bg-yellow-400', 'bg-pink-400', 'bg-blue-400', 'bg-green-400', 'bg-purple-400', 'bg-orange-400'];
+
+    const handleReadBook = async () => {
+        setViewingPDF(true);
+        // Log activity
+        await logStudentActivity(
+            user?.id,
+            'book_read',
+            selectedBook.id,
+            selectedBook.title,
+            { category: selectedBook.category || selectedBook.subject }
+        );
+    };
 
     return (
         <div className="p-4 space-y-4 pb-24">

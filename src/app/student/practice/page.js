@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, Suspense, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useGame } from '@/contexts/GameContext';
-import { useEnrollments, useAssessments, useSubjects, createRecord } from '@/hooks/useSupabaseData';
+import { useEnrollments, useAssessments, useSubjects, createRecord, logStudentActivity } from '@/hooks/useSupabaseData';
 import { generateHint, generateExplanation, isGeminiConfigured } from '@/lib/geminiAI';
 import { createExamMode, checkAccessibility, formatCountdown } from '@/lib/examMode';
 import DrawingCanvas from '@/components/DrawingCanvas';
@@ -240,7 +240,17 @@ function PracticeQuizContent() {
 
         try {
             await createRecord('attempts', attemptData);
-            console.log('Quiz attempt saved successfully');
+
+            // Log student activity
+            await logStudentActivity(
+                user?.id,
+                'quiz_completed',
+                quiz.id,
+                quiz.title,
+                { score, correctCount, totalQuestions: mcQuestions, xpEarned }
+            );
+
+            console.log('Quiz attempt saved and logged successfully');
         } catch (error) {
             console.error('Error saving attempt:', error);
             alert('Error saving your submission. Please check your connection.');

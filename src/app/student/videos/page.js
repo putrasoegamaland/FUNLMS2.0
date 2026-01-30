@@ -3,7 +3,7 @@
 import { useState, useRef, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useGame } from '@/contexts/GameContext';
-import { useVideos, useEnrollments, useSubjects, createRecord, updateRecord } from '@/hooks/useSupabaseData';
+import { useVideos, useEnrollments, useSubjects, createRecord, updateRecord, logStudentActivity } from '@/hooks/useSupabaseData';
 
 export default function StudentVideosPage() {
     const { user } = useAuth();
@@ -41,6 +41,15 @@ export default function StudentVideosPage() {
 
         // Award XP
         awardXP(15, selectedVideo?.subject_id);
+
+        // Log activity
+        await logStudentActivity(
+            user?.id,
+            'video_watched',
+            videoId,
+            selectedVideo?.title,
+            { subject: subjects.find(s => s.id === selectedVideo?.subject_id)?.name }
+        );
 
         // Update local state
         setWatchProgress(prev => ({

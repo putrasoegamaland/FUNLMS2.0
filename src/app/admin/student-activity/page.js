@@ -158,7 +158,11 @@ export default function AdminStudentActivityPage() {
             </div>
 
             {/* Stats Overview */}
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+                <div className="bg-indigo-50 rounded-xl p-4">
+                    <p className="text-2xl font-bold text-indigo-600">{allStudents?.length || 0}</p>
+                    <p className="text-xs text-indigo-700">Total Students</p>
+                </div>
                 <div className="bg-blue-50 rounded-xl p-4">
                     <p className="text-2xl font-bold text-blue-600">{activityStats.total}</p>
                     <p className="text-xs text-blue-700">Total Activities</p>
@@ -185,30 +189,39 @@ export default function AdminStudentActivityPage() {
             <div className="bg-white rounded-xl border p-4">
                 <h3 className="font-bold text-gray-900 mb-3">Students Overview</h3>
                 <div className="flex flex-wrap gap-3">
-                    {Object.entries(activityStats.byStudent)
-                        .sort((a, b) => new Date(b[1].lastActive) - new Date(a[1].lastActive))
-                        .map(([studentId, stats]) => (
+                    {(allStudents || [])
+                        .map(student => ({
+                            student,
+                            stats: activityStats.byStudent[student.id] || { count: 0, lastActive: null }
+                        }))
+                        .sort((a, b) => {
+                            if (a.stats.lastActive && b.stats.lastActive) return new Date(b.stats.lastActive) - new Date(a.stats.lastActive);
+                            if (a.stats.lastActive) return -1;
+                            if (b.stats.lastActive) return 1;
+                            return 0;
+                        })
+                        .map(({ student, stats }) => (
                             <button
-                                key={studentId}
-                                onClick={() => setFilterStudent(filterStudent === studentId ? '' : studentId)}
-                                className={`p-3 rounded-xl text-left transition-colors flex items-center gap-2 ${filterStudent === studentId
-                                        ? 'bg-blue-500 text-white'
-                                        : 'bg-gray-50 hover:bg-gray-100'
+                                key={student.id}
+                                onClick={() => setFilterStudent(filterStudent === student.id ? '' : student.id)}
+                                className={`p-3 rounded-xl text-left transition-colors flex items-center gap-2 ${filterStudent === student.id
+                                    ? 'bg-blue-500 text-white'
+                                    : 'bg-gray-50 hover:bg-gray-100'
                                     }`}
                             >
-                                <span className="text-2xl">{getStudentAvatar(studentId)}</span>
+                                <span className="text-2xl">{student.avatar || '👤'}</span>
                                 <div>
-                                    <p className={`font-medium text-sm ${filterStudent === studentId ? 'text-white' : 'text-gray-900'}`}>
-                                        {getStudentName(studentId)}
+                                    <p className={`font-medium text-sm ${filterStudent === student.id ? 'text-white' : 'text-gray-900'}`}>
+                                        {student.name}
                                     </p>
-                                    <p className={`text-xs ${filterStudent === studentId ? 'text-blue-100' : 'text-gray-500'}`}>
-                                        {stats.count} activities • {getRelativeTime(stats.lastActive)}
+                                    <p className={`text-xs ${filterStudent === student.id ? 'text-blue-100' : 'text-gray-500'}`}>
+                                        {stats.count} activities • {stats.lastActive ? getRelativeTime(stats.lastActive) : 'No activity'}
                                     </p>
                                 </div>
                             </button>
                         ))}
-                    {Object.keys(activityStats.byStudent).length === 0 && (
-                        <p className="text-gray-400 text-sm">No student activity yet</p>
+                    {(!allStudents || allStudents.length === 0) && (
+                        <p className="text-gray-400 text-sm">No students found</p>
                     )}
                 </div>
             </div>

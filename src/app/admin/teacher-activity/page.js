@@ -155,9 +155,12 @@ export default function AdminTeacherActivityPage() {
                 </div>
                 <div className="bg-purple-50 rounded-xl p-4">
                     <p className="text-3xl font-bold text-purple-600">
-                        {Object.keys(activityStats.byTeacher).length}
+                        {allUsers?.length || 0}
                     </p>
-                    <p className="text-sm text-purple-700">Active Teachers</p>
+                    <p className="text-sm text-purple-700">Total Teachers</p>
+                    <p className="text-xs text-purple-500 mt-1">
+                        {Object.keys(activityStats.byTeacher).length} active recently
+                    </p>
                 </div>
                 <div className="bg-orange-50 rounded-xl p-4">
                     <p className="text-3xl font-bold text-orange-600">
@@ -171,32 +174,43 @@ export default function AdminTeacherActivityPage() {
             <div className="bg-white rounded-xl border p-4">
                 <h3 className="font-bold text-gray-900 mb-3">Teacher Overview</h3>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                    {Object.entries(activityStats.byTeacher)
-                        .sort((a, b) => new Date(b[1].lastActive) - new Date(a[1].lastActive))
-                        .map(([teacherId, stats]) => (
+                    {(allUsers || [])
+                        .map(user => ({
+                            user,
+                            stats: activityStats.byTeacher[user.id] || { count: 0, lastActive: null }
+                        }))
+                        .sort((a, b) => {
+                            if (a.stats.lastActive && b.stats.lastActive) return new Date(b.stats.lastActive) - new Date(a.stats.lastActive);
+                            if (a.stats.lastActive) return -1;
+                            if (b.stats.lastActive) return 1;
+                            return 0;
+                        })
+                        .map(({ user, stats }) => (
                             <button
-                                key={teacherId}
-                                onClick={() => setFilterTeacher(filterTeacher === teacherId ? '' : teacherId)}
-                                className={`p-3 rounded-lg text-left transition-colors ${filterTeacher === teacherId
-                                        ? 'bg-blue-500 text-white'
-                                        : 'bg-gray-50 hover:bg-gray-100'
+                                key={user.id}
+                                onClick={() => setFilterTeacher(filterTeacher === user.id ? '' : user.id)}
+                                className={`p-3 rounded-lg text-left transition-colors ${filterTeacher === user.id
+                                    ? 'bg-blue-500 text-white'
+                                    : 'bg-gray-50 hover:bg-gray-100'
                                     }`}
                             >
-                                <p className={`font-medium ${filterTeacher === teacherId ? 'text-white' : 'text-gray-900'}`}>
-                                    {getTeacherName(teacherId)}
+                                <p className={`font-medium ${filterTeacher === user.id ? 'text-white' : 'text-gray-900'}`}>
+                                    {user.name}
                                 </p>
                                 <div className="flex items-center justify-between mt-1">
-                                    <span className={`text-xs ${filterTeacher === teacherId ? 'text-blue-100' : 'text-gray-500'}`}>
+                                    <span className={`text-xs ${filterTeacher === user.id ? 'text-blue-100' : 'text-gray-500'}`}>
                                         {stats.count} actions
                                     </span>
-                                    <span className={`text-xs ${filterTeacher === teacherId ? 'text-blue-100' : 'text-gray-400'}`}>
-                                        {getRelativeTime(stats.lastActive)}
-                                    </span>
+                                    {stats.lastActive && (
+                                        <span className={`text-xs ${filterTeacher === user.id ? 'text-blue-100' : 'text-gray-400'}`}>
+                                            {getRelativeTime(stats.lastActive)}
+                                        </span>
+                                    )}
                                 </div>
                             </button>
                         ))}
-                    {Object.keys(activityStats.byTeacher).length === 0 && (
-                        <p className="text-gray-400 text-sm col-span-full">No teacher activity yet</p>
+                    {(!allUsers || allUsers.length === 0) && (
+                        <p className="text-gray-400 text-sm col-span-full">No teachers found</p>
                     )}
                 </div>
             </div>

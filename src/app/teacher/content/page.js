@@ -549,12 +549,21 @@ function QuestionCard({ question, index, onUpdate, onDelete, type, allowImageAns
         onUpdate({ options: newOptions });
     };
 
+    const currentType = question.type || type;
+
     return (
         <div className="bg-card-light rounded-xl p-4 border border-gray-100 space-y-3">
             <div className="flex items-center justify-between">
                 <h4 className="font-bold text-text-main">Question {index + 1}</h4>
-                <div className="flex gap-2">
-                    <span className="text-xs bg-gray-100 px-2 py-1 rounded text-text-muted">Multiple Choice</span>
+                <div className="flex gap-2 items-center">
+                    <select
+                        value={currentType}
+                        onChange={(e) => onUpdate({ type: e.target.value })}
+                        className="text-xs bg-gray-100 px-2 py-1 rounded text-text-muted border-none outline-none cursor-pointer"
+                    >
+                        <option value="multiple_choice">Multiple Choice</option>
+                        <option value="essay">Essay</option>
+                    </select>
                     <button onClick={onDelete} className="text-red-500">
                         <span className="material-symbols-outlined" style={{ fontSize: 20 }}>delete</span>
                     </button>
@@ -616,7 +625,7 @@ function QuestionCard({ question, index, onUpdate, onDelete, type, allowImageAns
                 <p className="text-sm text-red-500">{error}</p>
             )}
 
-            {type === 'essay' && (
+            {(currentType === 'essay' || currentType === 'written_exam') && (
                 <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
                     <div className="flex items-center gap-2 mb-2">
                         <span className="material-symbols-outlined text-blue-600">info</span>
@@ -629,7 +638,7 @@ function QuestionCard({ question, index, onUpdate, onDelete, type, allowImageAns
                 </div>
             )}
 
-            {type === 'multiple_choice' && (
+            {(currentType === 'multiple_choice' || currentType === 'mc') && (
                 <div className="space-y-2">
                     <p className="text-sm text-text-muted">Answers (Select correct answer)</p>
                     {(question.options || []).map((opt, i) => (

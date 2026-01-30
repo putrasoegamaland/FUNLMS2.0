@@ -514,7 +514,7 @@ function PracticeQuizContent() {
                             )}
 
                             {/* Multiple Choice Options */}
-                            {(question.type === 'mc' || !question.type) && selectedQuiz?.type !== 'drawing' && (
+                            {(question.type === 'mc' || question.type === 'multiple_choice' || (!question.type && selectedQuiz?.type !== 'drawing' && selectedQuiz?.type !== 'essay')) && (
                                 <div className="space-y-3">
                                     {question.options?.map((option) => (
                                         <button
@@ -536,7 +536,7 @@ function PracticeQuizContent() {
                             )}
 
                             {/* Essay / Written Answer */}
-                            {isEssayOrExam && (
+                            {(question.type === 'essay' || question.type === 'written_exam' || (!question.type && isEssayOrExam)) && (
                                 <div className="space-y-4">
                                     <textarea
                                         value={textAnswers[question.id] || ''}

@@ -5,7 +5,10 @@ import { useStudentActivity, useUsers, useClasses, useEnrollments } from '@/hook
 
 export default function AdminStudentActivityPage() {
     const { data: activities, loading } = useStudentActivity();
-    const { data: allStudents } = useUsers({ role: 'student' });
+    const { data: allUsersRaw } = useUsers(); // Fetch ALL users
+    const allStudents = useMemo(() => {
+        return allUsersRaw?.filter(u => u.role === 'student' || u.role === 'Student') || [];
+    }, [allUsersRaw]);
     const { data: allClasses } = useClasses();
     const { data: enrollments } = useEnrollments();
 
@@ -386,6 +389,14 @@ export default function AdminStudentActivityPage() {
                     ))}
                 </div>
             )}
+
+            {/* Debug Info */}
+            <details className="bg-gray-100 p-4 rounded-xl text-xs font-mono text-gray-600">
+                <summary className="cursor-pointer font-bold mb-2">Debug Info (Users Raw: {allUsersRaw?.length || 0})</summary>
+                <div className="whitespace-pre-wrap">
+                    {JSON.stringify(allUsersRaw?.map(u => ({ id: u.id, name: u.name, role: u.role })), null, 2)}
+                </div>
+            </details>
         </div>
     );
 }

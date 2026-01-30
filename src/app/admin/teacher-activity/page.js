@@ -5,7 +5,10 @@ import { useTeacherActivity, useUsers } from '@/hooks/useSupabaseData';
 
 export default function AdminTeacherActivityPage() {
     const { data: activities, loading } = useTeacherActivity();
-    const { data: allUsers } = useUsers({ role: 'teacher' });
+    const { data: allUsersRaw } = useUsers(); // Fetch ALL users
+    const allUsers = useMemo(() => {
+        return allUsersRaw?.filter(u => u.role === 'teacher' || u.role === 'Teacher') || [];
+    }, [allUsersRaw]);
 
     const [filterTeacher, setFilterTeacher] = useState('');
     const [filterType, setFilterType] = useState('');

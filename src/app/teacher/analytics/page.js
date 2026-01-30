@@ -21,6 +21,7 @@ export default function TeacherAnalyticsPage() {
     const [selectedClass, setSelectedClass] = useState(null);
     const [selectedStudent, setSelectedStudent] = useState(null);
     const [students, setStudents] = useState([]);
+    const [generationMetric, setGenerationMetric] = useState('xp'); // 'xp' or 'grade'
 
     const isLoading = classesLoading || usersLoading || enrollmentsLoading || attemptsLoading || subjectsLoading || progressLoading || assessmentsLoading;
 
@@ -118,7 +119,7 @@ export default function TeacherAnalyticsPage() {
     const getGenerationStats = (gen) => {
         const genStudents = allUsers.filter(u => u.role === 'student' && u.generation === gen);
 
-        const stats = { totalStudents: genStudents.length, subjects: {}, totalXp: 0 };
+        const stats = { totalStudents: genStudents.length, subjects: {}, totalXp: 0, totalGrade: 0 };
 
         // Calculate total XP from progress table
         genStudents.forEach(student => {
@@ -126,22 +127,44 @@ export default function TeacherAnalyticsPage() {
             stats.totalXp += studentProgress?.total_xp || 0;
         });
 
-        // Calculate per-subject XP from progress table's subject_xp field
+        // Calculate per-subject XP and Grade from progress table and attempts
         subjects.forEach(subject => {
             let totalSubjectXp = 0;
+            let totalSubjectScore = 0;
+            let totalAttemptsCount = 0;
+
             genStudents.forEach(student => {
+                // Get XP from progress
                 const studentProgress = allProgress.find(p => p.user_id === student.id);
                 const subjectXp = studentProgress?.subject_xp || {};
                 totalSubjectXp += subjectXp[subject.id] || 0;
+
+                // Get grades from attempts
+                const studentAttempts = allAttempts.filter(a => a.user_id === student.id);
+                const subjectAssessments = allAssessments.filter(a => a.subject_id === subject.id);
+                const subjectAttempts = studentAttempts.filter(a =>
+                    subjectAssessments.some(sa => sa.id === a.assessment_id)
+                );
+
+                if (subjectAttempts.length > 0) {
+                    const studentTotalScore = subjectAttempts.reduce((sum, a) => sum + (a.score || 0), 0);
+                    totalSubjectScore += studentTotalScore;
+                    totalAttemptsCount += subjectAttempts.length;
+                }
             });
+
             stats.subjects[subject.id] = {
                 name: subject.name,
                 emoji: subject.emoji,
                 avgXp: genStudents.length > 0 ? Math.round(totalSubjectXp / genStudents.length) : 0,
+                avgGrade: totalAttemptsCount > 0 ? Math.round(totalSubjectScore / totalAttemptsCount) : 0,
             };
+
+            stats.totalGrade += stats.subjects[subject.id].avgGrade;
         });
 
         stats.avgXp = genStudents.length > 0 ? Math.round(stats.totalXp / genStudents.length) : 0;
+        stats.avgGrade = subjects.length > 0 ? Math.round(stats.totalGrade / subjects.length) : 0;
 
         return stats;
     };
@@ -406,6 +429,25 @@ export default function TeacherAnalyticsPage() {
                         Compare performance across generations
                     </p>
 
+                    <div className="flex justify-center mb-4">
+                        <div className="bg-gray-100 p-1 rounded-lg inline-flex">
+                            <button
+                                onClick={() => setGenerationMetric('xp')}
+                                className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${generationMetric === 'xp' ? 'bg-white text-primary shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                                    }`}
+                            >
+                                ✨ XP
+                            </button>
+                            <button
+                                onClick={() => setGenerationMetric('grade')}
+                                className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${generationMetric === 'grade' ? 'bg-white text-primary shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                                    }`}
+                            >
+                                📝 Grade
+                            </button>
+                        </div>
+                    </div>
+
                     {generations.length >= 2 ? (
                         <div className="space-y-4">
                             {/* Generation Comparison Cards */}
@@ -424,11 +466,17 @@ export default function TeacherAnalyticsPage() {
                                                     <span className="text-sm text-text-main flex-1">{data.name}</span>
                                                     <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
                                                         <div
-                                                            className="h-full bg-primary rounded-full"
-                                                            style={{ width: `${Math.min(100, data.avgXp / 2)}%` }}
+                                                            className="h-full bg-primary rounded-full transition-all duration-500"
+                                                            style={{
+                                                                width: `${generationMetric === 'xp'
+                                                                    ? Math.min(100, data.avgXp / 2)
+                                                                    : data.avgGrade}%`
+                                                            }}
                                                         />
                                                     </div>
-                                                    <span className="text-xs font-bold text-primary w-12 text-right">{data.avgXp} XP</span>
+                                                    <span className="text-xs font-bold text-primary w-16 text-right">
+                                                        {generationMetric === 'xp' ? `${data.avgXp} XP` : `${data.avgGrade}%`}
+                                                    </span>
                                                 </div>
                                             ))}
                                         </div>

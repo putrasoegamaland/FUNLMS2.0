@@ -171,7 +171,7 @@ const MOCK_TEACHER_ACTIVITY = [
         activity_type: 'create_quiz',
         entity_title: 'Math Quiz Week 1',
         metadata: { questionCount: 10, type: 'multiple_choice' },
-        created_at: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
+        created_at: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(), // 1 hour ago
     },
     {
         id: '60000000-0000-0000-0000-000000000002',
@@ -179,7 +179,7 @@ const MOCK_TEACHER_ACTIVITY = [
         activity_type: 'grade_submission',
         entity_title: 'Alex - Science Quiz',
         metadata: { score: 85, maxScore: 100 },
-        created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+        created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
     },
     {
         id: '60000000-0000-0000-0000-000000000003',
@@ -187,7 +187,15 @@ const MOCK_TEACHER_ACTIVITY = [
         activity_type: 'add_question',
         entity_title: 'What is 5 + 3?',
         metadata: { type: 'mc', subject: 'Mathematics' },
-        created_at: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
+        created_at: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(), // 3 hours ago
+    },
+    {
+        id: '60000000-0000-0000-0000-000000000006',
+        teacher_id: '00000000-0000-0000-0000-000000000002',
+        activity_type: 'create_quiz',
+        entity_title: 'Science Quiz',
+        metadata: { questionCount: 5, type: 'multiple_choice' },
+        created_at: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(), // 4 hours ago (Before grading)
     },
     {
         id: '60000000-0000-0000-0000-000000000004',
@@ -195,7 +203,15 @@ const MOCK_TEACHER_ACTIVITY = [
         activity_type: 'create_assignment',
         entity_title: 'Reading Homework Week 2',
         metadata: { dueDate: '2026-02-07' },
-        created_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+        created_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), // 1 day ago
+    },
+    {
+        id: '60000000-0000-0000-0000-000000000007',
+        teacher_id: '00000000-0000-0000-0000-000000000002',
+        activity_type: 'create_assignment',
+        entity_title: 'Reading Homework Week 1',
+        metadata: { dueDate: '2026-01-31' },
+        created_at: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(), // 2 days ago (Before submission)
     },
     {
         id: '60000000-0000-0000-0000-000000000005',
@@ -203,7 +219,7 @@ const MOCK_TEACHER_ACTIVITY = [
         activity_type: 'upload_book',
         entity_title: 'Fun with Numbers',
         metadata: { pages: 32, subject: 'Mathematics' },
-        created_at: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(),
+        created_at: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(), // 2 days ago
     },
 ];
 
@@ -215,7 +231,7 @@ const MOCK_STUDENT_ACTIVITY = [
         entity_id: '80000000-0000-0000-0000-000000000001',
         entity_title: 'Math Quiz Week 1',
         metadata: { score: 90, timeSpent: 600, correctAnswers: 9, totalQuestions: 10 },
-        created_at: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
+        created_at: new Date(Date.now() - 30 * 60 * 1000).toISOString(), // 30 mins ago (After creation)
     },
     {
         id: '70000000-0000-0000-0000-000000000002',
@@ -224,7 +240,16 @@ const MOCK_STUDENT_ACTIVITY = [
         entity_id: '80000000-0000-0000-0000-000000000001',
         entity_title: 'Math Quiz Week 1',
         metadata: { score: 80, timeSpent: 720, correctAnswers: 8, totalQuestions: 10 },
-        created_at: new Date(Date.now() - 45 * 60 * 1000).toISOString(),
+        created_at: new Date(Date.now() - 45 * 60 * 1000).toISOString(), // 45 mins ago (After creation)
+    },
+    {
+        id: '70000000-0000-0000-0000-000000000008',
+        student_id: '00000000-0000-0000-0000-000000000003', // Alex
+        activity_type: 'quiz_completed',
+        entity_id: '80000000-0000-0000-0000-000000000002',
+        entity_title: 'Science Quiz',
+        metadata: { score: 85, timeSpent: 500, correctAnswers: 4, totalQuestions: 5 },
+        created_at: new Date(Date.now() - 3.5 * 60 * 60 * 1000).toISOString(), // 3.5 hours ago (After creation, Before grading)
     },
     {
         id: '70000000-0000-0000-0000-000000000003',
@@ -232,7 +257,7 @@ const MOCK_STUDENT_ACTIVITY = [
         activity_type: 'book_read',
         entity_title: 'Fun with Numbers',
         metadata: { pagesRead: 15, totalPages: 32 },
-        created_at: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
+        created_at: new Date(Date.now() - 60 * 60 * 1000).toISOString(), // 1 hour ago (After upload)
     },
     {
         id: '70000000-0000-0000-0000-000000000004',
@@ -249,6 +274,14 @@ const MOCK_STUDENT_ACTIVITY = [
         entity_title: 'Math Adventure',
         metadata: { score: 1500, level: 3, xpEarned: 25 },
         created_at: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
+    },
+    {
+        id: '70000000-0000-0000-0000-000000000006',
+        student_id: '00000000-0000-0000-0000-000000000005',
+        activity_type: 'assignment_submitted',
+        entity_title: 'Reading Homework Week 1',
+        metadata: { onTime: true },
+        created_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), // 1 day ago (Matches Week 1 creation)
     },
 ];
 

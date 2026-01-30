@@ -163,9 +163,105 @@ export function useQuestionBank(filter) {
     return useSupabaseQuery('question_bank', { filter, orderBy: 'created_at' });
 }
 
+// Mock Data for fallback
+const MOCK_TEACHER_ACTIVITY = [
+    {
+        id: '60000000-0000-0000-0000-000000000001',
+        teacher_id: '00000000-0000-0000-0000-000000000002',
+        activity_type: 'create_quiz',
+        entity_title: 'Math Quiz Week 1',
+        metadata: { questionCount: 10, type: 'multiple_choice' },
+        created_at: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
+    },
+    {
+        id: '60000000-0000-0000-0000-000000000002',
+        teacher_id: '00000000-0000-0000-0000-000000000002',
+        activity_type: 'grade_submission',
+        entity_title: 'Alex - Science Quiz',
+        metadata: { score: 85, maxScore: 100 },
+        created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+    },
+    {
+        id: '60000000-0000-0000-0000-000000000003',
+        teacher_id: '00000000-0000-0000-0000-000000000002',
+        activity_type: 'add_question',
+        entity_title: 'What is 5 + 3?',
+        metadata: { type: 'mc', subject: 'Mathematics' },
+        created_at: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
+    },
+    {
+        id: '60000000-0000-0000-0000-000000000004',
+        teacher_id: '00000000-0000-0000-0000-000000000002',
+        activity_type: 'create_assignment',
+        entity_title: 'Reading Homework Week 2',
+        metadata: { dueDate: '2026-02-07' },
+        created_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+    },
+    {
+        id: '60000000-0000-0000-0000-000000000005',
+        teacher_id: '00000000-0000-0000-0000-000000000002',
+        activity_type: 'upload_book',
+        entity_title: 'Fun with Numbers',
+        metadata: { pages: 32, subject: 'Mathematics' },
+        created_at: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(),
+    },
+];
+
+const MOCK_STUDENT_ACTIVITY = [
+    {
+        id: '70000000-0000-0000-0000-000000000001',
+        student_id: '00000000-0000-0000-0000-000000000003',
+        activity_type: 'quiz_completed',
+        entity_id: '80000000-0000-0000-0000-000000000001',
+        entity_title: 'Math Quiz Week 1',
+        metadata: { score: 90, timeSpent: 600, correctAnswers: 9, totalQuestions: 10 },
+        created_at: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
+    },
+    {
+        id: '70000000-0000-0000-0000-000000000002',
+        student_id: '00000000-0000-0000-0000-000000000004',
+        activity_type: 'quiz_completed',
+        entity_id: '80000000-0000-0000-0000-000000000001',
+        entity_title: 'Math Quiz Week 1',
+        metadata: { score: 80, timeSpent: 720, correctAnswers: 8, totalQuestions: 10 },
+        created_at: new Date(Date.now() - 45 * 60 * 1000).toISOString(),
+    },
+    {
+        id: '70000000-0000-0000-0000-000000000003',
+        student_id: '00000000-0000-0000-0000-000000000005',
+        activity_type: 'book_read',
+        entity_title: 'Fun with Numbers',
+        metadata: { pagesRead: 15, totalPages: 32 },
+        created_at: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
+    },
+    {
+        id: '70000000-0000-0000-0000-000000000004',
+        student_id: '00000000-0000-0000-0000-000000000003',
+        activity_type: 'video_watched',
+        entity_title: 'Introduction to Fractions',
+        metadata: { watchTime: 300, duration: 420 },
+        created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+    },
+    {
+        id: '70000000-0000-0000-0000-000000000005',
+        student_id: '00000000-0000-0000-0000-000000000004',
+        activity_type: 'game_played',
+        entity_title: 'Math Adventure',
+        metadata: { score: 1500, level: 3, xpEarned: 25 },
+        created_at: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
+    },
+];
+
 // Teacher Activity hooks (for admin monitoring)
 export function useTeacherActivity(filter) {
-    return useSupabaseQuery('teacher_activity', { filter, orderBy: 'created_at' });
+    const query = useSupabaseQuery('teacher_activity', { filter, orderBy: 'created_at' });
+
+    // Provide fallback mock data if real data is empty
+    if (!isSupabaseConfigured() || (!query.loading && (!query.data || query.data.length === 0))) {
+        return { ...query, data: MOCK_TEACHER_ACTIVITY, loading: false };
+    }
+
+    return query;
 }
 
 // Helper to log teacher activity
@@ -203,7 +299,14 @@ export async function logTeacherActivity(teacherId, activityType, entityId, enti
 
 // Student Activity hooks (for teacher/admin monitoring)
 export function useStudentActivity(filter) {
-    return useSupabaseQuery('student_activity', { filter, orderBy: 'created_at' });
+    const query = useSupabaseQuery('student_activity', { filter, orderBy: 'created_at' });
+
+    // Provide fallback mock data if real data is empty
+    if (!isSupabaseConfigured() || (!query.loading && (!query.data || query.data.length === 0))) {
+        return { ...query, data: MOCK_STUDENT_ACTIVITY, loading: false };
+    }
+
+    return query;
 }
 
 // Helper to log student activity

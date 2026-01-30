@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { useClasses, useBooks, useEnrollments, useAttempts } from '@/hooks/useSupabaseData';
+import { useClasses, useBooks, useEnrollments, useAttempts, useStudentActivity, useUsers } from '@/hooks/useSupabaseData';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 
 // Helper function for relative time
@@ -29,6 +29,8 @@ export default function TeacherDashboard() {
     const { data: books, loading: booksLoading } = useBooks();
     const { data: enrollments, loading: enrollmentsLoading } = useEnrollments();
     const { data: attempts, loading: attemptsLoading } = useAttempts();
+    const { data: studentActivities, loading: studentActivityLoading } = useStudentActivity();
+    const { data: allStudents } = useUsers({ role: 'student' });
 
     const [recentActivity, setRecentActivity] = useState([]);
 
@@ -42,6 +44,55 @@ export default function TeacherDashboard() {
         totalStudents: totalStudents,
         booksUploaded: books.length,
     };
+
+    // Get student name helper
+    const getStudentName = (studentId) => {
+        const student = allStudents?.find(u => u.id === studentId);
+        return student?.name || 'Student';
+    };
+
+    const getStudentAvatar = (studentId) => {
+        const student = allStudents?.find(u => u.id === studentId);
+        return student?.avatar || '👤';
+    };
+
+    // Process student activities for display
+    const studentActivityDisplay = useMemo(() => {
+        if (!studentActivities || studentActivities.length === 0) return [];
+
+        return studentActivities
+            .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+            .slice(0, 8)
+            .map(activity => {
+                const icons = {
+                    quiz_completed: '📝',
+                    book_read: '📚',
+                    video_watched: '🎬',
+                    game_played: '🎮',
+                    assignment_submitted: '📋',
+                    login: '🔐',
+                };
+                const labels = {
+                    quiz_completed: 'completed quiz',
+                    book_read: 'read book',
+                    video_watched: 'watched video',
+                    game_played: 'played game',
+                    assignment_submitted: 'submitted',
+                    login: 'logged in',
+                };
+                return {
+                    id: activity.id,
+                    icon: icons[activity.activity_type] || '📌',
+                    avatar: getStudentAvatar(activity.student_id),
+                    studentName: getStudentName(activity.student_id),
+                    action: labels[activity.activity_type] || activity.activity_type,
+                    title: activity.entity_title,
+                    score: activity.metadata?.score,
+                    xp: activity.metadata?.xpEarned,
+                    time: getTimeAgo(activity.created_at),
+                };
+            });
+    }, [studentActivities, allStudents]);
 
     // Load recent activity
     useEffect(() => {
@@ -141,31 +192,49 @@ export default function TeacherDashboard() {
                 </a>
             </div>
 
-            {/* Recent Activity */}
+            {/* Student Activity */}
             <section>
                 <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-text-main font-bold">{t('recent_activity')}</h3>
-                    <button className="text-primary text-sm font-semibold">{t('view_all')}</button>
+                    <h3 className="text-text-main font-bold">👨‍🎓 Student Activity</h3>
+                    <span className="text-xs text-text-muted">{studentActivities?.length || 0} total</span>
                 </div>
-                <div className="space-y-3">
-                    {recentActivity.length > 0 ? (
-                        recentActivity.map(activity => (
+                <div className="space-y-2">
+                    {studentActivityDisplay.length > 0 ? (
+                        studentActivityDisplay.map(activity => (
                             <div key={activity.id} className="flex items-center gap-3 p-3 rounded-xl bg-card-light border border-gray-100 shadow-sm">
-                                <div className="shrink-0 w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-lg">
-                                    {activity.icon}
+                                <div className="shrink-0 w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-xl">
+                                    {activity.avatar}
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <p className="text-sm text-text-main">
-                                        <span className="font-bold">{activity.title}</span>
-                                        {activity.highlight && <span className="text-primary font-bold"> {activity.highlight}</span>}
+                                        <span className="font-bold">{activity.studentName}</span>
+                                        <span className="text-text-muted"> {activity.action}</span>
                                     </p>
-                                    <p className="text-xs text-text-muted">{activity.desc}</p>
+                                    {activity.title && (
+                                        <p className="text-xs text-primary font-medium truncate">{activity.title}</p>
+                                    )}
+                                    <div className="flex items-center gap-2 mt-0.5">
+                                        {activity.score !== undefined && (
+                                            <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full">
+                                                {activity.score}%
+                                            </span>
+                                        )}
+                                        {activity.xp !== undefined && (
+                                            <span className="text-xs bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded-full">
+                                                +{activity.xp} XP
+                                            </span>
+                                        )}
+                                        <span className="text-xs text-text-muted">{activity.time}</span>
+                                    </div>
                                 </div>
+                                <span className="text-xl">{activity.icon}</span>
                             </div>
                         ))
                     ) : (
-                        <div className="text-center py-8 text-text-muted">
-                            <p>No recent activity yet</p>
+                        <div className="text-center py-8 text-text-muted bg-card-light rounded-xl border border-gray-100">
+                            <span className="material-symbols-outlined text-4xl mb-2">pending_actions</span>
+                            <p>No student activity yet</p>
+                            <p className="text-xs mt-1">Activity will appear when students use the app</p>
                         </div>
                     )}
                 </div>

@@ -2,8 +2,10 @@
 
 import { useState, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useSubjects, useClasses, useAssessments, createRecord, deleteRecord } from '@/hooks/useSupabaseData';
+import { useSubjects, useClasses, useAssessments, createRecord, deleteRecord, logTeacherActivity } from '@/hooks/useSupabaseData';
 import { processImage, formatFileSize } from '@/lib/fileUtils';
+import OCRUploader from '@/components/OCRUploader';
+import QuestionBankModal from '@/components/QuestionBankModal';
 
 export default function TeacherContentPage() {
     const { user } = useAuth();
@@ -32,6 +34,8 @@ export default function TeacherContentPage() {
         class_id: '',
     });
     const [saving, setSaving] = useState(false);
+    const [showOCRUploader, setShowOCRUploader] = useState(false);
+    const [showQuestionBank, setShowQuestionBank] = useState(false);
 
     const isLoading = subjectsLoading || classesLoading || assessmentsLoading;
     const classes = allClasses;
@@ -86,6 +90,42 @@ export default function TeacherContentPage() {
         }));
     };
 
+    // Handle OCR extracted questions
+    const handleOCRQuestions = (extractedQuestions) => {
+        // Normalize questions to ensure options exist for MC type
+        const normalized = extractedQuestions.map(q => ({
+            ...q,
+            options: q.options || (q.type === 'mc' ? [
+                { id: '1', text: '', image: null, isCorrect: false },
+                { id: '2', text: '', image: null, isCorrect: false },
+                { id: '3', text: '', image: null, isCorrect: false },
+                { id: '4', text: '', image: null, isCorrect: false },
+            ] : undefined),
+        }));
+        setFormData(prev => ({
+            ...prev,
+            questions: [...prev.questions, ...normalized],
+        }));
+    };
+
+    // Handle Question Bank import
+    const handleBankImport = (importedQuestions) => {
+        // Normalize questions to ensure options exist for MC type
+        const normalized = importedQuestions.map(q => ({
+            ...q,
+            options: q.options || (q.type === 'mc' ? [
+                { id: '1', text: '', image: null, isCorrect: false },
+                { id: '2', text: '', image: null, isCorrect: false },
+                { id: '3', text: '', image: null, isCorrect: false },
+                { id: '4', text: '', image: null, isCorrect: false },
+            ] : undefined),
+        }));
+        setFormData(prev => ({
+            ...prev,
+            questions: [...prev.questions, ...normalized],
+        }));
+    };
+
     const handleSubmit = async () => {
         setSaving(true);
         try {
@@ -94,9 +134,17 @@ export default function TeacherContentPage() {
                 type: assessmentType,
                 teacher_id: user?.id,
             };
-            await createRecord('assessments', assessment);
-            alert('Quiz created successfully!');
-            // Reset form
+            const created = await createRecord('assessments', assessment);
+
+            // Log teacher activity
+            await logTeacherActivity(
+                user?.id,
+                'create_quiz',
+                created?.id,
+                formData.title,
+                { questionCount: formData.questions.length, type: assessmentType }
+            );
+
             alert('Quiz created successfully!');
             // Reset form
             setStep('list');
@@ -285,6 +333,24 @@ export default function TeacherContentPage() {
                         <span className="material-symbols-outlined">add</span>
                         Add Question
                     </button>
+
+                    {/* Import options */}
+                    <div className="flex gap-3">
+                        <button
+                            onClick={() => setShowOCRUploader(true)}
+                            className="flex-1 py-3 bg-purple-100 text-purple-700 rounded-xl font-semibold flex items-center justify-center gap-2 hover:bg-purple-200 transition-colors"
+                        >
+                            <span className="material-symbols-outlined">document_scanner</span>
+                            Import from Image
+                        </button>
+                        <button
+                            onClick={() => setShowQuestionBank(true)}
+                            className="flex-1 py-3 bg-blue-100 text-blue-700 rounded-xl font-semibold flex items-center justify-center gap-2 hover:bg-blue-200 transition-colors"
+                        >
+                            <span className="material-symbols-outlined">inventory_2</span>
+                            Import from Bank
+                        </button>
+                    </div>
                 </div>
             )}
 
@@ -405,6 +471,24 @@ export default function TeacherContentPage() {
                     subjects={subjects}
                     onBack={() => setStep('settings')}
                     onPublish={handleSubmit}
+                />
+            )}
+
+            {/* OCR Uploader Modal */}
+            {showOCRUploader && (
+                <OCRUploader
+                    onQuestionsExtracted={handleOCRQuestions}
+                    onClose={() => setShowOCRUploader(false)}
+                />
+            )}
+
+            {/* Question Bank Modal */}
+            {showQuestionBank && (
+                <QuestionBankModal
+                    onImportQuestions={handleBankImport}
+                    onClose={() => setShowQuestionBank(false)}
+                    isAdmin={false}
+                    currentTeacherId={user?.id}
                 />
             )}
         </div>
@@ -548,7 +632,7 @@ function QuestionCard({ question, index, onUpdate, onDelete, type, allowImageAns
             {type === 'multiple_choice' && (
                 <div className="space-y-2">
                     <p className="text-sm text-text-muted">Answers (Select correct answer)</p>
-                    {question.options.map((opt, i) => (
+                    {(question.options || []).map((opt, i) => (
                         <div key={opt.id} className="flex items-center gap-2">
                             <button
                                 onClick={() => setCorrectOption(i)}

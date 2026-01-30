@@ -359,10 +359,175 @@ Respond with ONLY your answer, nothing else.`;
     }
 }
 
+/**
+ * Extract questions from an image using Gemini Flash 2.0 vision
+ * @param {string} imageData - Base64 encoded image data (without data: prefix)
+ * @param {string} mimeType - Image MIME type (image/jpeg, image/png, etc.)
+ * @returns {Promise<{success: boolean, questions: Array, error?: string}>}
+ */
+export async function extractQuestionsFromImage(imageData, mimeType = 'image/jpeg') {
+    if (!GEMINI_API_KEY) {
+        return {
+            success: false,
+            questions: [],
+            error: 'Gemini API key not configured. Please add NEXT_PUBLIC_GEMINI_API_KEY to your .env.local file.'
+        };
+    }
+
+    try {
+        // Remove data URL prefix if present
+        const base64Data = imageData.includes('base64,')
+            ? imageData.split('base64,')[1]
+            : imageData;
+
+        const prompt = `You are an expert at extracting questions from exam papers, worksheets, and educational materials.
+
+Analyze this image and extract ALL questions you can find. For each question, identify:
+1. The question text (prompt)
+2. The question type: 'mc' (multiple choice), 'essay' (long answer), 'fill_blank' (fill in the blank), 'true_false' (true/false)
+3. For multiple choice: extract all options and identify which one is correct (if marked)
+4. For fill in the blank: identify the expected answer if visible
+
+Return a JSON array with this exact format:
+[
+  {
+    "type": "mc",
+    "prompt": "What is 2 + 2?",
+    "options": [
+      {"id": "1", "text": "3", "isCorrect": false},
+      {"id": "2", "text": "4", "isCorrect": true},
+      {"id": "3", "text": "5", "isCorrect": false},
+      {"id": "4", "text": "6", "isCorrect": false}
+    ]
+  },
+  {
+    "type": "essay",
+    "prompt": "Explain the water cycle in your own words."
+  },
+  {
+    "type": "fill_blank",
+    "prompt": "The capital of France is ___.",
+    "correctAnswer": "Paris"
+  },
+  {
+    "type": "true_false",
+    "prompt": "The sun rises in the east.",
+    "correctAnswer": "true"
+  }
+]
+
+IMPORTANT:
+- Return ONLY the JSON array, no other text
+- If no questions are found, return an empty array: []
+- Keep question text exactly as written in the image
+- For multiple choice without marked answers, set all isCorrect to false
+- Number options with sequential IDs starting from "1"`;
+
+        const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                contents: [{
+                    parts: [
+                        { text: prompt },
+                        {
+                            inline_data: {
+                                mime_type: mimeType,
+                                data: base64Data
+                            }
+                        }
+                    ]
+                }],
+                generationConfig: {
+                    temperature: 0.1,
+                    maxOutputTokens: 8192,
+                },
+            }),
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('OCR API error:', errorText);
+
+            if (response.status === 429) {
+                return {
+                    success: false,
+                    questions: [],
+                    error: 'Rate limit reached. Please wait a moment and try again.'
+                };
+            }
+
+            return {
+                success: false,
+                questions: [],
+                error: `API error: ${response.status}`
+            };
+        }
+
+        const data = await response.json();
+        const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+        if (!responseText) {
+            return {
+                success: false,
+                questions: [],
+                error: 'No response from AI. The image may be unclear or contain no questions.'
+            };
+        }
+
+        // Parse JSON from response (handle markdown code blocks)
+        let jsonText = responseText.trim();
+        if (jsonText.startsWith('```')) {
+            jsonText = jsonText.replace(/```json?\n?/g, '').replace(/```/g, '').trim();
+        }
+
+        try {
+            const questions = JSON.parse(jsonText);
+
+            // Validate and normalize questions
+            const normalizedQuestions = questions.map((q, index) => ({
+                id: crypto.randomUUID(),
+                type: q.type || 'mc',
+                prompt: q.prompt || `Question ${index + 1}`,
+                promptImage: null,
+                options: q.type === 'mc' ? (q.options || []).map((opt, i) => ({
+                    id: opt.id || String(i + 1),
+                    text: opt.text || '',
+                    image: null,
+                    isCorrect: opt.isCorrect || false
+                })) : undefined,
+                correctAnswer: q.correctAnswer,
+            }));
+
+            return {
+                success: true,
+                questions: normalizedQuestions
+            };
+        } catch (parseError) {
+            console.error('Error parsing OCR response:', parseError, responseText);
+            return {
+                success: false,
+                questions: [],
+                error: 'Failed to parse extracted questions. Please try with a clearer image.'
+            };
+        }
+    } catch (error) {
+        console.error('Error extracting questions:', error);
+        return {
+            success: false,
+            questions: [],
+            error: 'Failed to process image. Please try again.'
+        };
+    }
+}
+
 export default {
     isGeminiConfigured,
     getApiKey,
     generateHint,
     generateExplanation,
     askAboutMaterial,
+    extractQuestionsFromImage,
 };

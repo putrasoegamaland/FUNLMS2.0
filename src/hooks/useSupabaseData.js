@@ -158,6 +158,87 @@ export function useAllProgress() {
     return useSupabaseQuery('progress');
 }
 
+// Question Bank hooks
+export function useQuestionBank(filter) {
+    return useSupabaseQuery('question_bank', { filter, orderBy: 'created_at' });
+}
+
+// Teacher Activity hooks (for admin monitoring)
+export function useTeacherActivity(filter) {
+    return useSupabaseQuery('teacher_activity', { filter, orderBy: 'created_at' });
+}
+
+// Helper to log teacher activity
+export async function logTeacherActivity(teacherId, activityType, entityId, entityTitle, metadata = {}) {
+    if (!isSupabaseConfigured() || !supabase) {
+        console.warn('Supabase not configured, skipping activity log');
+        return null;
+    }
+
+    try {
+        const { data, error } = await supabase
+            .from('teacher_activity')
+            .insert({
+                id: crypto.randomUUID(),
+                teacher_id: teacherId,
+                activity_type: activityType,
+                entity_id: entityId,
+                entity_title: entityTitle,
+                metadata,
+                created_at: new Date().toISOString()
+            })
+            .select()
+            .single();
+
+        if (error) {
+            console.error('Error logging activity:', error);
+            return null;
+        }
+        return data;
+    } catch (err) {
+        console.error('Error logging activity:', err);
+        return null;
+    }
+}
+
+// Student Activity hooks (for teacher/admin monitoring)
+export function useStudentActivity(filter) {
+    return useSupabaseQuery('student_activity', { filter, orderBy: 'created_at' });
+}
+
+// Helper to log student activity
+export async function logStudentActivity(studentId, activityType, entityId, entityTitle, metadata = {}) {
+    if (!isSupabaseConfigured() || !supabase) {
+        console.warn('Supabase not configured, skipping activity log');
+        return null;
+    }
+
+    try {
+        const { data, error } = await supabase
+            .from('student_activity')
+            .insert({
+                id: crypto.randomUUID(),
+                student_id: studentId,
+                activity_type: activityType,
+                entity_id: entityId,
+                entity_title: entityTitle,
+                metadata,
+                created_at: new Date().toISOString()
+            })
+            .select()
+            .single();
+
+        if (error) {
+            console.error('Error logging student activity:', error);
+            return null;
+        }
+        return data;
+    } catch (err) {
+        console.error('Error logging student activity:', err);
+        return null;
+    }
+}
+
 // Single item hooks
 export function useUser(id) {
     return useSupabaseItem('users', id);

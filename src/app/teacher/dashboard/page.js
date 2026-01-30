@@ -173,22 +173,40 @@ export default function TeacherDashboard() {
             {/* Action Buttons */}
             <div className="grid grid-cols-2 gap-3">
                 <a
-                    href="/teacher/books"
-                    className="flex flex-col items-center justify-center gap-2 p-6 rounded-2xl bg-card-light border border-gray-100 shadow-sm hover:shadow-md transition-shadow"
+                    href="/teacher/content"
+                    className="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl bg-primary text-white shadow-sm hover:shadow-md transition-shadow"
                 >
-                    <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center">
-                        <span className="material-symbols-outlined text-text-main" style={{ fontSize: 28 }}>folder_open</span>
+                    <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
+                        <span className="material-symbols-outlined" style={{ fontSize: 24 }}>add</span>
                     </div>
-                    <span className="font-bold text-text-main">Manage Books</span>
+                    <span className="font-bold text-sm">Create Quiz</span>
                 </a>
                 <a
-                    href="/teacher/content"
-                    className="flex flex-col items-center justify-center gap-2 p-6 rounded-2xl bg-primary text-white shadow-sm hover:shadow-md transition-shadow"
+                    href="/teacher/question-bank"
+                    className="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl bg-card-light border border-gray-100 shadow-sm hover:shadow-md transition-shadow"
                 >
-                    <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center">
-                        <span className="material-symbols-outlined" style={{ fontSize: 28 }}>add</span>
+                    <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
+                        <span className="material-symbols-outlined text-blue-600" style={{ fontSize: 24 }}>inventory_2</span>
                     </div>
-                    <span className="font-bold">Create Content</span>
+                    <span className="font-bold text-sm text-text-main">Question Bank</span>
+                </a>
+                <a
+                    href="/teacher/games"
+                    className="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl bg-card-light border border-gray-100 shadow-sm hover:shadow-md transition-shadow"
+                >
+                    <div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center">
+                        <span className="material-symbols-outlined text-purple-600" style={{ fontSize: 24 }}>sports_esports</span>
+                    </div>
+                    <span className="font-bold text-sm text-text-main">Games</span>
+                </a>
+                <a
+                    href="/teacher/books"
+                    className="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl bg-card-light border border-gray-100 shadow-sm hover:shadow-md transition-shadow"
+                >
+                    <div className="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center">
+                        <span className="material-symbols-outlined text-green-600" style={{ fontSize: 24 }}>menu_book</span>
+                    </div>
+                    <span className="font-bold text-sm text-text-main">Manage Books</span>
                 </a>
             </div>
 

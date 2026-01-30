@@ -6,15 +6,13 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import ResponsiveLayout from '@/components/ResponsiveLayout';
 
-// Define navigation items for admin
+// Define navigation items for admin (optimized for mobile)
 const adminNavItems = [
     { href: '/admin/dashboard', icon: 'dashboard', label: 'Dashboard' },
-    { href: '/admin/users', icon: 'group', label: 'User Management' },
+    { href: '/admin/users', icon: 'group', label: 'Users' },
     { href: '/admin/classes', icon: 'class', label: 'Classes' },
-    { href: '/admin/question-bank', icon: 'inventory_2', label: 'Question Bank' },
-    { href: '/admin/teacher-activity', icon: 'school', label: 'Teacher Activity' },
-    { href: '/admin/student-activity', icon: 'face', label: 'Student Activity' },
-    { href: '/admin/gamification', icon: 'emoji_events', label: 'Gamification' },
+    { href: '/admin/question-bank', icon: 'inventory_2', label: 'Questions' },
+    { href: '/admin/activity', icon: 'history', label: 'Activity' },
     { href: '/admin/settings', icon: 'settings', label: 'Settings' },
 ];
 

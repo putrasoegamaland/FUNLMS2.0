@@ -6,17 +6,15 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import ResponsiveLayout from '@/components/ResponsiveLayout';
 
-// Define navigation items for teacher
+// Define navigation items for teacher (optimized for mobile)
 const teacherNavItems = [
     { href: '/teacher/dashboard', icon: 'home', label: 'Dashboard' },
-    { href: '/teacher/books', icon: 'menu_book', label: 'Book Library' },
-    { href: '/teacher/content', icon: 'quiz', label: 'Create Quiz' },
-    { href: '/teacher/question-bank', icon: 'inventory_2', label: 'Question Bank' },
-    { href: '/teacher/videos', icon: 'play_circle', label: 'Video Library' },
-    { href: '/teacher/assignments', icon: 'assignment', label: 'Assignments' },
+    { href: '/teacher/books', icon: 'menu_book', label: 'Books' },
+    { href: '/teacher/content', icon: 'quiz', label: 'Quiz' },
+    { href: '/teacher/videos', icon: 'play_circle', label: 'Videos' },
+    { href: '/teacher/assignments', icon: 'assignment', label: 'Tasks' },
     { href: '/teacher/grading', icon: 'edit_note', label: 'Grading' },
-    { href: '/teacher/games', icon: 'sports_esports', label: 'Games' },
-    { href: '/teacher/analytics', icon: 'insights', label: 'Analytics' },
+    { href: '/teacher/analytics', icon: 'insights', label: 'Reports' },
 ];
 
 export default function TeacherLayout({ children }) {

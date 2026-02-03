@@ -287,14 +287,7 @@ const MOCK_STUDENT_ACTIVITY = [
 
 // Teacher Activity hooks (for admin monitoring)
 export function useTeacherActivity(filter) {
-    const query = useSupabaseQuery('teacher_activity', { filter, orderBy: 'created_at' });
-
-    // Provide fallback mock data if real data is empty
-    if (!isSupabaseConfigured() || (!query.loading && (!query.data || query.data.length === 0))) {
-        return { ...query, data: MOCK_TEACHER_ACTIVITY, loading: false };
-    }
-
-    return query;
+    return useSupabaseQuery('teacher_activity', { filter, orderBy: 'created_at' });
 }
 
 // Helper to log teacher activity
@@ -332,14 +325,7 @@ export async function logTeacherActivity(teacherId, activityType, entityId, enti
 
 // Student Activity hooks (for teacher/admin monitoring)
 export function useStudentActivity(filter) {
-    const query = useSupabaseQuery('student_activity', { filter, orderBy: 'created_at' });
-
-    // Provide fallback mock data if real data is empty
-    if (!isSupabaseConfigured() || (!query.loading && (!query.data || query.data.length === 0))) {
-        return { ...query, data: MOCK_STUDENT_ACTIVITY, loading: false };
-    }
-
-    return query;
+    return useSupabaseQuery('student_activity', { filter, orderBy: 'created_at' });
 }
 
 // Helper to log student activity

@@ -166,6 +166,25 @@ export default function AdminDashboard() {
                     )}
                 </div>
             </section>
+
+            {/* Debug Info */}
+            <details className="bg-gray-100 p-4 rounded-xl text-xs font-mono text-gray-600 mt-4">
+                <summary className="cursor-pointer font-bold mb-2">Debug Info (Total Users: {users?.length || 0})</summary>
+                <div className="grid grid-cols-2 gap-4 mt-2">
+                    <div>
+                        <p className="font-bold mb-1">Teachers ({stats.teachers}):</p>
+                        <pre className="whitespace-pre-wrap text-[10px]">
+                            {JSON.stringify(users?.filter(u => u.role === 'teacher').map(u => ({ id: u.id, name: u.name })), null, 2)}
+                        </pre>
+                    </div>
+                    <div>
+                        <p className="font-bold mb-1">Students ({stats.students}):</p>
+                        <pre className="whitespace-pre-wrap text-[10px]">
+                            {JSON.stringify(users?.filter(u => u.role === 'student').map(u => ({ id: u.id, name: u.name })), null, 2)}
+                        </pre>
+                    </div>
+                </div>
+            </details>
         </div>
     );
 }

@@ -8,6 +8,10 @@ export default function AdminActivityPage() {
     const { data: teacherActivities, loading: teacherLoading } = useTeacherActivity();
     const { data: allUsers } = useUsers();
 
+    // Derive user counts
+    const totalStudents = useMemo(() => allUsers?.filter(u => u.role === 'student' || u.role === 'Student').length || 0, [allUsers]);
+    const totalTeachers = useMemo(() => allUsers?.filter(u => u.role === 'teacher' || u.role === 'Teacher').length || 0, [allUsers]);
+
     const [activeTab, setActiveTab] = useState('all'); // 'all', 'students', 'teachers'
     const [filterType, setFilterType] = useState('');
     const [dateRange, setDateRange] = useState('all');
@@ -141,23 +145,30 @@ export default function AdminActivityPage() {
                 <p className="text-gray-500 text-sm">Track all user activities</p>
             </div>
 
-            {/* Stats */}
-            <div className="grid grid-cols-4 gap-2 md:gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2 md:gap-4">
                 <div className="bg-blue-50 rounded-xl p-3 text-center">
                     <p className="text-lg md:text-2xl font-bold text-blue-600">{stats.total}</p>
-                    <p className="text-xs text-blue-700">Total</p>
+                    <p className="text-xs text-blue-700">Activities</p>
                 </div>
                 <div className="bg-green-50 rounded-xl p-3 text-center">
                     <p className="text-lg md:text-2xl font-bold text-green-600">{stats.today}</p>
                     <p className="text-xs text-green-700">Today</p>
                 </div>
                 <div className="bg-purple-50 rounded-xl p-3 text-center">
-                    <p className="text-lg md:text-2xl font-bold text-purple-600">{stats.students}</p>
-                    <p className="text-xs text-purple-700">Students</p>
+                    <p className="text-lg md:text-2xl font-bold text-purple-600">{totalStudents}</p>
+                    <p className="text-xs text-purple-700">Total Students</p>
                 </div>
                 <div className="bg-orange-50 rounded-xl p-3 text-center">
-                    <p className="text-lg md:text-2xl font-bold text-orange-600">{stats.teachers}</p>
-                    <p className="text-xs text-orange-700">Teachers</p>
+                    <p className="text-lg md:text-2xl font-bold text-orange-600">{totalTeachers}</p>
+                    <p className="text-xs text-orange-700">Total Teachers</p>
+                </div>
+                <div className="bg-indigo-50 rounded-xl p-3 text-center">
+                    <p className="text-lg md:text-2xl font-bold text-indigo-600">{stats.students}</p>
+                    <p className="text-xs text-indigo-700">Student Acts</p>
+                </div>
+                <div className="bg-cyan-50 rounded-xl p-3 text-center">
+                    <p className="text-lg md:text-2xl font-bold text-cyan-600">{stats.teachers}</p>
+                    <p className="text-xs text-cyan-700">Teacher Acts</p>
                 </div>
             </div>
 
@@ -172,8 +183,8 @@ export default function AdminActivityPage() {
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
                         className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${activeTab === tab.id
-                                ? 'bg-white text-gray-900 shadow'
-                                : 'text-gray-600 hover:text-gray-900'
+                            ? 'bg-white text-gray-900 shadow'
+                            : 'text-gray-600 hover:text-gray-900'
                             }`}
                     >
                         <span className="mr-1">{tab.icon}</span>
@@ -248,6 +259,14 @@ export default function AdminActivityPage() {
                     ))}
                 </div>
             )}
+
+            {/* Debug Info */}
+            <details className="bg-gray-100 p-4 rounded-xl text-xs font-mono text-gray-600">
+                <summary className="cursor-pointer font-bold mb-2">Debug Info (Total Users: {allUsers?.length || 0})</summary>
+                <div className="whitespace-pre-wrap">
+                    {JSON.stringify(allUsers?.map(u => ({ id: u.id, name: u.name, role: u.role })), null, 2)}
+                </div>
+            </details>
         </div>
     );
 }

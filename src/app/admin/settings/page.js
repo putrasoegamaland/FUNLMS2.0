@@ -3,9 +3,42 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { isGeminiConfigured } from '@/lib/geminiAI';
+import { useSubjects, useSubjectBenchmarks, updateSubjectBenchmark } from '@/hooks/useSupabaseData';
 
 export default function AdminSettingsPage() {
     const { user } = useAuth();
+    const { data: subjects, loading: subjectsLoading } = useSubjects();
+    const { data: benchmarks, loading: benchmarksLoading, refetch: refetchBenchmarks } = useSubjectBenchmarks();
+    const [editingBenchmark, setEditingBenchmark] = useState({});
+    const [savingBenchmark, setSavingBenchmark] = useState({});
+
+    // Get benchmark value for a subject
+    const getBenchmarkForSubject = (subjectId) => {
+        const benchmark = benchmarks?.find(b => b.subject_id === subjectId);
+        return benchmark?.minimum_grade ?? 70;
+    };
+
+    // Handle benchmark update
+    const handleBenchmarkSave = async (subjectId) => {
+        const newValue = editingBenchmark[subjectId];
+        if (newValue === undefined) return;
+
+        setSavingBenchmark(prev => ({ ...prev, [subjectId]: true }));
+        try {
+            await updateSubjectBenchmark(subjectId, parseInt(newValue), user?.id);
+            refetchBenchmarks();
+            setEditingBenchmark(prev => {
+                const updated = { ...prev };
+                delete updated[subjectId];
+                return updated;
+            });
+        } catch (error) {
+            console.error('Error updating benchmark:', error);
+            alert('Failed to update benchmark');
+        } finally {
+            setSavingBenchmark(prev => ({ ...prev, [subjectId]: false }));
+        }
+    };
 
     return (
         <div className="p-4 space-y-6">
@@ -59,6 +92,78 @@ export default function AdminSettingsPage() {
                                 </a>
                                 {' '}, then restart the server.
                             </p>
+                        </div>
+                    )}
+                </div>
+            </section>
+
+            {/* Grade Benchmark Settings */}
+            <section className="bg-card-light rounded-xl p-4 border border-gray-100">
+                <div className="flex items-center gap-3 mb-4">
+                    <div className="w-10 h-10 rounded-lg bg-orange-100 flex items-center justify-center">
+                        <span className="text-xl">🎯</span>
+                    </div>
+                    <div>
+                        <h3 className="font-bold text-text-main">Grade Benchmarks</h3>
+                        <p className="text-sm text-text-muted">Set minimum passing grades per subject</p>
+                    </div>
+                </div>
+
+                <div className="space-y-3">
+                    <p className="text-sm text-gray-600">
+                        Teachers will be notified when students score below these thresholds.
+                    </p>
+
+                    {subjectsLoading || benchmarksLoading ? (
+                        <div className="py-8 text-center">
+                            <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
+                            <p className="text-sm text-gray-500 mt-2">Loading subjects...</p>
+                        </div>
+                    ) : subjects?.length === 0 ? (
+                        <div className="py-8 text-center text-gray-500">
+                            <span className="text-3xl">📚</span>
+                            <p className="mt-2">No subjects configured yet</p>
+                            <p className="text-xs mt-1">Add subjects in the Gamification settings</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-2">
+                            {subjects?.map((subject) => {
+                                const currentBenchmark = getBenchmarkForSubject(subject.id);
+                                const isEditing = editingBenchmark[subject.id] !== undefined;
+                                const isSaving = savingBenchmark[subject.id];
+
+                                return (
+                                    <div
+                                        key={subject.id}
+                                        className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 border"
+                                    >
+                                        <span className="text-xl">{subject.emoji || '📝'}</span>
+                                        <span className="flex-1 font-medium text-gray-900">{subject.name}</span>
+
+                                        <div className="flex items-center gap-2">
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                max="100"
+                                                value={isEditing ? editingBenchmark[subject.id] : currentBenchmark}
+                                                onChange={(e) => setEditingBenchmark(prev => ({ ...prev, [subject.id]: e.target.value }))}
+                                                className="w-16 px-2 py-1 text-center rounded-lg border border-gray-300 focus:border-primary outline-none text-sm font-medium"
+                                            />
+                                            <span className="text-sm text-gray-500">%</span>
+
+                                            {isEditing && (
+                                                <button
+                                                    onClick={() => handleBenchmarkSave(subject.id)}
+                                                    disabled={isSaving}
+                                                    className="px-3 py-1 bg-primary text-white text-sm rounded-lg hover:bg-primary/90 disabled:opacity-50"
+                                                >
+                                                    {isSaving ? '...' : 'Save'}
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })}
                         </div>
                     )}
                 </div>

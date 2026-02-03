@@ -31,7 +31,7 @@ export default function TeacherContentPage() {
         },
         start_date: '',
         due_date: '',
-        class_id: '',
+        class_ids: [],  // Array for multi-class assignment
     });
     const [saving, setSaving] = useState(false);
     const [showOCRUploader, setShowOCRUploader] = useState(false);
@@ -157,7 +157,7 @@ export default function TeacherContentPage() {
                 settings: { aiHints: true, hintLimit: 3, allowSkip: true, allowRedo: false, realtimeFeedback: true, tabLock: false, allowImageAnswer: false },
                 start_date: '',
                 due_date: '',
-                class_id: '',
+                class_ids: [],
             });
         } catch (error) {
             alert('Error creating quiz: ' + error.message);
@@ -429,17 +429,57 @@ export default function TeacherContentPage() {
                     </div>
 
                     <div className="bg-card-light rounded-xl p-4 border border-gray-100">
-                        <h3 className="font-bold text-text-main mb-3">Assign to Class</h3>
-                        <select
-                            value={formData.class_id}
-                            onChange={(e) => setFormData({ ...formData, class_id: e.target.value })}
-                            className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary outline-none"
-                        >
-                            <option value="">Select a class</option>
-                            {classes.map((cls) => (
-                                <option key={cls.id} value={cls.id}>{cls.name}</option>
-                            ))}
-                        </select>
+                        <div className="flex items-center justify-between mb-3">
+                            <h3 className="font-bold text-text-main">Assign to Classes</h3>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    if (formData.class_ids.length === classes.length) {
+                                        setFormData({ ...formData, class_ids: [] });
+                                    } else {
+                                        setFormData({ ...formData, class_ids: classes.map(c => c.id) });
+                                    }
+                                }}
+                                className="text-sm text-primary hover:underline"
+                            >
+                                {formData.class_ids.length === classes.length ? 'Deselect All' : 'Select All'}
+                            </button>
+                        </div>
+                        <div className="space-y-2 max-h-48 overflow-y-auto">
+                            {classes.length === 0 ? (
+                                <p className="text-sm text-gray-500">No classes assigned to you</p>
+                            ) : (
+                                classes.map((cls) => (
+                                    <label
+                                        key={cls.id}
+                                        className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors ${formData.class_ids.includes(cls.id)
+                                                ? 'bg-primary/10 border-primary'
+                                                : 'bg-gray-50 hover:bg-gray-100'
+                                            } border`}
+                                    >
+                                        <input
+                                            type="checkbox"
+                                            checked={formData.class_ids.includes(cls.id)}
+                                            onChange={(e) => {
+                                                if (e.target.checked) {
+                                                    setFormData({ ...formData, class_ids: [...formData.class_ids, cls.id] });
+                                                } else {
+                                                    setFormData({ ...formData, class_ids: formData.class_ids.filter(id => id !== cls.id) });
+                                                }
+                                            }}
+                                            className="w-4 h-4 text-primary rounded focus:ring-primary"
+                                        />
+                                        <span className="text-lg">{cls.emoji || '📚'}</span>
+                                        <span className="font-medium text-gray-900">{cls.name}</span>
+                                    </label>
+                                ))
+                            )}
+                        </div>
+                        {formData.class_ids.length > 0 && (
+                            <p className="text-xs text-gray-500 mt-2">
+                                {formData.class_ids.length} class{formData.class_ids.length > 1 ? 'es' : ''} selected
+                            </p>
+                        )}
                     </div>
 
                     <div className="flex gap-3">

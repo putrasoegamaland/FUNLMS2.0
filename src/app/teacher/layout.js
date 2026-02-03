@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import ResponsiveLayout from '@/components/ResponsiveLayout';
+import NotificationBell from '@/components/NotificationBell';
 
 // Define navigation items for teacher (optimized for mobile)
 const teacherNavItems = [
@@ -51,6 +52,7 @@ export default function TeacherLayout({ children }) {
                 </div>
             </div>
             <div className="flex gap-2">
+                <NotificationBell userId={user?.id} />
                 <button
                     onClick={toggleLanguage}
                     className="p-2 rounded-full bg-gray-100 text-sm hover:bg-gray-200 transition-colors"

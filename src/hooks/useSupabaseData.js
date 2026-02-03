@@ -163,6 +163,138 @@ export function useQuestionBank(filter) {
     return useSupabaseQuery('question_bank', { filter, orderBy: 'created_at' });
 }
 
+// ==================== BENCHMARK & NOTIFICATION HOOKS ====================
+
+// Subject benchmarks (admin-configurable minimum grades)
+export function useSubjectBenchmarks() {
+    return useSupabaseQuery('subject_benchmarks');
+}
+
+// Teacher notifications
+export function useTeacherNotifications(teacherId) {
+    return useSupabaseQuery('teacher_notifications', {
+        filter: teacherId ? { teacher_id: teacherId } : undefined,
+        orderBy: 'created_at',
+        enabled: !!teacherId
+    });
+}
+
+// Create notification for teacher
+export async function createTeacherNotification(teacherId, type, title, message, metadata = {}) {
+    if (!isSupabaseConfigured() || !supabase) {
+        console.warn('Supabase not configured, skipping notification');
+        return null;
+    }
+
+    try {
+        const { data, error } = await supabase
+            .from('teacher_notifications')
+            .insert({
+                id: crypto.randomUUID(),
+                teacher_id: teacherId,
+                type,
+                title,
+                message,
+                metadata,
+                is_read: false,
+                created_at: new Date().toISOString()
+            })
+            .select()
+            .single();
+
+        if (error) {
+            console.error('Error creating notification:', error);
+            return null;
+        }
+        return data;
+    } catch (err) {
+        console.error('Error creating notification:', err);
+        return null;
+    }
+}
+
+// Mark notification as read
+export async function markNotificationRead(notificationId) {
+    if (!isSupabaseConfigured() || !supabase) return null;
+
+    try {
+        const { data, error } = await supabase
+            .from('teacher_notifications')
+            .update({ is_read: true })
+            .eq('id', notificationId)
+            .select()
+            .single();
+
+        if (error) throw error;
+        return data;
+    } catch (err) {
+        console.error('Error marking notification as read:', err);
+        return null;
+    }
+}
+
+// Mark all notifications as read for a teacher
+export async function markAllNotificationsRead(teacherId) {
+    if (!isSupabaseConfigured() || !supabase) return null;
+
+    try {
+        const { error } = await supabase
+            .from('teacher_notifications')
+            .update({ is_read: true })
+            .eq('teacher_id', teacherId)
+            .eq('is_read', false);
+
+        if (error) throw error;
+        return true;
+    } catch (err) {
+        console.error('Error marking all notifications as read:', err);
+        return null;
+    }
+}
+
+// Update subject benchmark (admin only)
+export async function updateSubjectBenchmark(subjectId, minimumGrade, adminId) {
+    if (!isSupabaseConfigured() || !supabase) return null;
+
+    try {
+        // Upsert - insert or update
+        const { data, error } = await supabase
+            .from('subject_benchmarks')
+            .upsert({
+                subject_id: subjectId,
+                minimum_grade: minimumGrade,
+                created_by: adminId,
+                updated_at: new Date().toISOString()
+            }, { onConflict: 'subject_id' })
+            .select()
+            .single();
+
+        if (error) throw error;
+        return data;
+    } catch (err) {
+        console.error('Error updating benchmark:', err);
+        return null;
+    }
+}
+
+// Get benchmark for a specific subject
+export async function getSubjectBenchmark(subjectId) {
+    if (!isSupabaseConfigured() || !supabase) return 70; // Default
+
+    try {
+        const { data, error } = await supabase
+            .from('subject_benchmarks')
+            .select('minimum_grade')
+            .eq('subject_id', subjectId)
+            .single();
+
+        if (error) return 70; // Default if not found
+        return data?.minimum_grade || 70;
+    } catch (err) {
+        return 70;
+    }
+}
+
 // Mock Data for fallback
 const MOCK_TEACHER_ACTIVITY = [
     {

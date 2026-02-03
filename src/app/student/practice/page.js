@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, Suspense, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useGame } from '@/contexts/GameContext';
-import { useEnrollments, useAssessments, useSubjects, createRecord, logStudentActivity } from '@/hooks/useSupabaseData';
+import { useEnrollments, useAssessments, useSubjects, createRecord, logStudentActivity, getSubjectBenchmark, createTeacherNotification } from '@/hooks/useSupabaseData';
 import { generateHint, generateExplanation, isGeminiConfigured } from '@/lib/geminiAI';
 import { createExamMode, checkAccessibility, formatCountdown } from '@/lib/examMode';
 import DrawingCanvas from '@/components/DrawingCanvas';
@@ -44,11 +44,23 @@ function PracticeQuizContent() {
 
     // Filter assessments for student's classes
     const assessments = useMemo(() => {
-        const classIds = enrollments.map(e => e.class_id);
+        const studentClassIds = enrollments.map(e => e.class_id);
         return allAssessments.filter(a => {
             if (a.type === 'game') return false;
-            const assigned = a.class_id && classIds.includes(a.class_id);
-            return assigned || !a.class_id; // Show unassigned quizzes too
+
+            // Check new class_ids array first (multi-class assignment)
+            if (a.class_ids && a.class_ids.length > 0) {
+                const assignedToStudentClass = a.class_ids.some(cid => studentClassIds.includes(cid));
+                return assignedToStudentClass;
+            }
+
+            // Fallback to legacy class_id for backwards compatibility
+            if (a.class_id) {
+                return studentClassIds.includes(a.class_id);
+            }
+
+            // Show unassigned quizzes (no class restriction)
+            return true;
         }).map(a => ({
             ...a,
             access: checkAccessibility(a),
@@ -249,6 +261,35 @@ function PracticeQuizContent() {
                 quiz.title,
                 { score, correctCount, totalQuestions: mcQuestions, xpEarned }
             );
+
+            // Check benchmark and notify teacher if below threshold
+            if (score !== null && quiz.subject_id && quiz.teacher_id) {
+                try {
+                    const benchmark = await getSubjectBenchmark(quiz.subject_id);
+                    if (score < benchmark) {
+                        const subjectName = subjects?.find(s => s.id === quiz.subject_id)?.name || 'Unknown Subject';
+                        await createTeacherNotification(
+                            quiz.teacher_id,
+                            'below_benchmark',
+                            `⚠️ ${user?.name} scored below benchmark`,
+                            `Scored ${score}% on "${quiz.title}" (${subjectName}). Benchmark is ${benchmark}%.`,
+                            {
+                                student_id: user?.id,
+                                student_name: user?.name,
+                                assessment_id: quiz.id,
+                                assessment_title: quiz.title,
+                                score,
+                                benchmark,
+                                subject_id: quiz.subject_id,
+                                subject_name: subjectName
+                            }
+                        );
+                        console.log('Teacher notified: student below benchmark');
+                    }
+                } catch (benchmarkError) {
+                    console.error('Error checking benchmark:', benchmarkError);
+                }
+            }
 
             console.log('Quiz attempt saved and logged successfully');
         } catch (error) {

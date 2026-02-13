@@ -63,6 +63,11 @@ export async function saveLocalDB(data) {
         await fs.writeFile(DB_FILE, JSON.stringify(data, null, 2));
         return true;
     } catch (error) {
+        // Handle read-only filesystem (Vercel serverless)
+        if (error.code === 'EROFS' || error.code === 'ENOENT' || error.code === 'EACCES') {
+            console.warn('Local DB write skipped (read-only filesystem, e.g. Vercel)');
+            return false;
+        }
         console.error('Error saving local DB:', error);
         return false;
     }

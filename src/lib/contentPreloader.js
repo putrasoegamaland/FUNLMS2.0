@@ -56,14 +56,25 @@ export async function preloadAllData(onProgress = () => { }) {
         });
 
         try {
-            const { data, error } = await supabase
+            // Try with ordering first, fall back to no ordering if column doesn't exist
+            let data, error;
+            const result = await supabase
                 .from(table)
                 .select('*')
                 .order('created_at', { ascending: false });
 
+            if (result.error && result.error.message?.includes('does not exist')) {
+                // Table exists but doesn't have created_at — try without ordering
+                const fallback = await supabase.from(table).select('*');
+                data = fallback.data;
+                error = fallback.error;
+            } else {
+                data = result.data;
+                error = result.error;
+            }
+
             if (error) {
-                // Table might not exist — skip non-critical tables
-                console.warn(`Could not pre-load ${table}:`, error.message);
+                // Table might not exist — skip silently
                 results.failed.push({ table, error: error.message });
                 continue;
             }

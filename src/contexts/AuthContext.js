@@ -25,25 +25,41 @@ export function AuthProvider({ children }) {
             setIsLoading(false);
 
             // Auto-detect if we're on a Local Hub network
-            // This is a fast local check (no internet needed)
-            try {
-                const res = await fetch('/api/local/health', {
-                    signal: AbortSignal.timeout(2000) // 2 second timeout max
-                });
-                if (res.ok) {
-                    const data = await res.json();
-                    if (data.available) {
-                        // Local hub is running! Set mode for data routing
-                        const currentMode = localStorage.getItem('funlms_network_mode');
-                        if (currentMode !== 'local-hub') {
-                            // Only set guest-wifi if not the teacher (teacher uses local-hub)
-                            localStorage.setItem('funlms_network_mode', 'guest-wifi');
-                            console.log('🏠 Local Hub detected! Routing data locally.');
+            // Only check if hostname looks like a local IP (not on Vercel/cloud)
+            const hostname = window.location.hostname;
+            const isLocalNetwork = hostname === 'localhost' ||
+                hostname === '127.0.0.1' ||
+                hostname.startsWith('192.168.') ||
+                hostname.startsWith('10.') ||
+                hostname.startsWith('172.');
+
+            if (isLocalNetwork) {
+                try {
+                    const res = await fetch('/api/local/health', {
+                        signal: AbortSignal.timeout(2000) // 2 second timeout max
+                    });
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data.available) {
+                            // Local hub is running! Set mode for data routing
+                            const currentMode = localStorage.getItem('funlms_network_mode');
+                            if (currentMode !== 'local-hub') {
+                                // Only set guest-wifi if not the teacher (teacher uses local-hub)
+                                localStorage.setItem('funlms_network_mode', 'guest-wifi');
+                                console.log('🏠 Local Hub detected! Routing data locally.');
+                            }
                         }
                     }
+                } catch (e) {
+                    // Health check failed — no local hub, continue normally
                 }
-            } catch (e) {
-                // Health check failed — no local hub, continue normally
+            } else {
+                // On cloud/Vercel — ensure we're NOT in guest-wifi mode
+                const currentMode = localStorage.getItem('funlms_network_mode');
+                if (currentMode === 'guest-wifi') {
+                    localStorage.removeItem('funlms_network_mode');
+                    console.log('☁️ Cloud deployment detected, clearing guest-wifi mode.');
+                }
             }
 
             // Seed demo data ONLY if online (skip if local-hub or guest-wifi)
@@ -60,33 +76,39 @@ export function AuthProvider({ children }) {
         init();
     }, []);
 
-    // Login function — tries LOCAL FIRST (instant), then Supabase
+    // Login function — tries LOCAL FIRST (on LAN only), then Supabase
     const login = useCallback(async (username, password) => {
-        // STEP 1: Try Local API first (instant on LAN, fails fast if no hub)
-        try {
-            const res = await fetch('/api/local/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, password }),
-                signal: AbortSignal.timeout(3000) // 3 second timeout
-            });
+        // STEP 1: Try Local API first (only on local network)
+        const hostname = window.location.hostname;
+        const isLocalNetwork = hostname === 'localhost' ||
+            hostname === '127.0.0.1' ||
+            hostname.startsWith('192.168.') ||
+            hostname.startsWith('10.') ||
+            hostname.startsWith('172.');
 
-            if (res.ok) {
-                const data = await res.json();
-                if (data.success && data.user) {
-                    setUser(data.user);
-                    localStorage.setItem('funlms_current_user', JSON.stringify(data.user));
-                    localStorage.setItem('funlms_network_mode', 'guest-wifi');
-                    console.log('✅ Logged in via Local Hub');
-                    return { success: true, user: data.user };
+        if (isLocalNetwork) {
+            try {
+                const res = await fetch('/api/local/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password }),
+                    signal: AbortSignal.timeout(3000) // 3 second timeout
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.success && data.user) {
+                        setUser(data.user);
+                        localStorage.setItem('funlms_current_user', JSON.stringify(data.user));
+                        localStorage.setItem('funlms_network_mode', 'guest-wifi');
+                        console.log('✅ Logged in via Local Hub');
+                        return { success: true, user: data.user };
+                    }
                 }
+                // 401 or other non-ok: fall through to Supabase
+            } catch (localErr) {
+                console.log('Local login unavailable, trying Supabase...', localErr.message);
             }
-            // If local API returned 401 (wrong password), don't fall through to Supabase
-            if (res.status === 401) {
-                return { success: false, error: 'Invalid username or password' };
-            }
-        } catch (localErr) {
-            console.log('Local login unavailable, trying Supabase...', localErr.message);
         }
 
         // STEP 2: Fall back to Supabase/IndexedDB (original behavior)

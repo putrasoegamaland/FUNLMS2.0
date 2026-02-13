@@ -1,7 +1,6 @@
 
 import fs from 'fs/promises';
 import path from 'path';
-import 'server-only'; // Ensure this runs only on the server
 
 const DB_PATH = path.join(process.cwd(), 'local_data');
 const DB_FILE = path.join(DB_PATH, 'db.json');

@@ -236,7 +236,7 @@ function GameCreator({ template, classes, subjects, userId, onBack, onSave }) {
     };
 
     const addItem = () => {
-        const newId = crypto.randomUUID();
+        const newId = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : ('xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => { const r = (Math.random() * 16) | 0; return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16); }));
         const currentItems = getItems();
 
         if (template.id === 'match_pairs') {
@@ -552,7 +552,7 @@ function GameCreator({ template, classes, subjects, userId, onBack, onSave }) {
                             ))}
                             <button
                                 onClick={() => {
-                                    const newId = crypto.randomUUID();
+                                    const newId = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : ('xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => { const r = (Math.random() * 16) | 0; return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16); }));
                                     setFormData(prev => ({
                                         ...prev,
                                         game_data: {

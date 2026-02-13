@@ -56,7 +56,19 @@ export default function StudentAssignmentsPage() {
         // Process Quizzes
         const myQuizzes = allAssessments.filter(a => {
             if (a.type === 'game') return false;
-            return (a.class_id && classIds.includes(a.class_id)) || !a.class_id;
+
+            // Check new class_ids array first (multi-class assignment)
+            if (a.class_ids && a.class_ids.length > 0) {
+                return a.class_ids.some(cid => classIds.includes(cid));
+            }
+
+            // Fallback to legacy class_id for backwards compatibility
+            if (a.class_id) {
+                return classIds.includes(a.class_id);
+            }
+
+            // Show unassigned quizzes (no class restriction)
+            return true;
         }).map(a => {
             const attempts = allAttempts.filter(at => at.assessment_id === a.id);
             const isCompleted = attempts.length > 0; // Simplified
@@ -463,7 +475,7 @@ export default function StudentAssignmentsPage() {
                             return (
                                 <div key={task.id} className={`p-4 rounded-xl flex items-center gap-3 border ${isGraded ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-100'}`}>
                                     <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl font-bold ${isGraded ? 'bg-green-200 text-green-700' :
-                                            isPendingGrade ? 'bg-yellow-200 text-yellow-700' : 'bg-gray-200 text-gray-600'
+                                        isPendingGrade ? 'bg-yellow-200 text-yellow-700' : 'bg-gray-200 text-gray-600'
                                         }`}>
                                         {isGraded ? grade : isPendingGrade ? '⏳' : '✓'}
                                     </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 
@@ -14,6 +14,24 @@ import Link from 'next/link';
  */
 export default function Sidebar({ navItems = [], collapsed = false, onToggle, role = 'teacher' }) {
     const pathname = usePathname();
+    const [networkMode, setNetworkMode] = useState('online');
+
+    // Read network mode from localStorage
+    useEffect(() => {
+        const checkMode = () => {
+            const mode = localStorage.getItem('funlms_network_mode');
+            setNetworkMode(mode === 'local-hub' ? 'local-hub' : (navigator.onLine ? 'online' : 'offline'));
+        };
+        checkMode();
+        const interval = setInterval(checkMode, 3000);
+        window.addEventListener('online', checkMode);
+        window.addEventListener('offline', checkMode);
+        return () => {
+            clearInterval(interval);
+            window.removeEventListener('online', checkMode);
+            window.removeEventListener('offline', checkMode);
+        };
+    }, []);
 
     const roleColors = {
         student: 'from-green-500 to-emerald-600',
@@ -56,8 +74,8 @@ export default function Sidebar({ navItems = [], collapsed = false, onToggle, ro
                                 <Link
                                     href={item.href}
                                     className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group ${isActive
-                                            ? `bg-gradient-to-r ${roleColors[role]} text-white shadow-md`
-                                            : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                                        ? `bg-gradient-to-r ${roleColors[role]} text-white shadow-md`
+                                        : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                                         }`}
                                     title={collapsed ? item.label : undefined}
                                 >
@@ -82,8 +100,28 @@ export default function Sidebar({ navItems = [], collapsed = false, onToggle, ro
                 </ul>
             </nav>
 
+            {/* Network Status Indicator */}
+            <div className={`px-2 mb-2 ${collapsed ? 'text-center' : ''}`}>
+                <div className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium ${networkMode === 'online' ? 'bg-emerald-50 text-emerald-700' :
+                        networkMode === 'local-hub' ? 'bg-amber-50 text-amber-700' :
+                            'bg-red-50 text-red-700'
+                    }`}>
+                    <span className={`w-2 h-2 rounded-full flex-shrink-0 ${networkMode === 'online' ? 'bg-emerald-500' :
+                            networkMode === 'local-hub' ? 'bg-amber-500 animate-pulse' :
+                                'bg-red-500'
+                        }`} />
+                    {!collapsed && (
+                        <span>
+                            {networkMode === 'online' ? '🌐 Online' :
+                                networkMode === 'local-hub' ? '📡 Local Hub' :
+                                    '🔴 Offline'}
+                        </span>
+                    )}
+                </div>
+            </div>
+
             {/* Collapse Toggle Button */}
-            <div className="absolute bottom-4 left-0 right-0 px-2">
+            <div className="px-2 pb-4">
                 <button
                     onClick={onToggle}
                     className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors"

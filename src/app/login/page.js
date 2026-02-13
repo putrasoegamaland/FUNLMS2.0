@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -14,6 +14,17 @@ export default function LoginPage() {
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [networkMode, setNetworkMode] = useState('online');
+
+    // Check network mode
+    useEffect(() => {
+        const mode = localStorage.getItem('funlms_network_mode');
+        if (mode === 'local-hub' || mode === 'guest-wifi') {
+            setNetworkMode('local-hub');
+        } else {
+            setNetworkMode(navigator.onLine ? 'online' : 'offline');
+        }
+    }, []);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -50,13 +61,27 @@ export default function LoginPage() {
 
     return (
         <div className="min-h-screen flex flex-col items-center justify-center bg-background-light p-4">
-            {/* Language Toggle */}
-            <button
-                onClick={toggleLanguage}
-                className="absolute top-4 right-4 px-3 py-1.5 rounded-full bg-card-light shadow-sm text-sm font-medium hover:bg-gray-50 transition-colors"
-            >
-                {locale === 'en' ? '🇮🇩 ID' : '🇬🇧 EN'}
-            </button>
+            {/* Network Mode Badge + Language Toggle */}
+            <div className="absolute top-4 right-4 flex items-center gap-2">
+                <div className={`px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-1.5 ${networkMode === 'online' ? 'bg-emerald-50 text-emerald-700' :
+                    networkMode === 'local-hub' ? 'bg-amber-50 text-amber-700' :
+                        'bg-red-50 text-red-700'
+                    }`}>
+                    <span className={`w-2 h-2 rounded-full ${networkMode === 'online' ? 'bg-emerald-500' :
+                        networkMode === 'local-hub' ? 'bg-amber-500 animate-pulse' :
+                            'bg-red-500'
+                        }`} />
+                    {networkMode === 'online' ? '🌐 Online' :
+                        networkMode === 'local-hub' ? '📡 Local Hub' :
+                            '🔴 Offline'}
+                </div>
+                <button
+                    onClick={toggleLanguage}
+                    className="px-3 py-1.5 rounded-full bg-card-light shadow-sm text-sm font-medium hover:bg-gray-50 transition-colors"
+                >
+                    {locale === 'en' ? '🇮🇩 ID' : '🇬🇧 EN'}
+                </button>
+            </div>
 
             {/* Logo & Title */}
             <div className="text-center mb-8">

@@ -12,9 +12,11 @@ const adminNavItems = [
     { href: '/admin/users', icon: 'group', label: 'Users' },
     { href: '/admin/classes', icon: 'class', label: 'Classes' },
     { href: '/admin/question-bank', icon: 'inventory_2', label: 'Questions' },
+    { href: '/admin/question-review', icon: 'fact_check', label: 'QC Review' },
     { href: '/admin/activity', icon: 'history', label: 'Activity' },
     { href: '/admin/settings', icon: 'settings', label: 'Settings' },
 ];
+
 
 export default function AdminLayout({ children }) {
     const router = useRouter();

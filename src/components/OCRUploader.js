@@ -70,7 +70,7 @@ export default function OCRUploader({ onQuestionsExtracted, onClose }) {
                 try {
                     // Dynamic import of pdf.js
                     const pdfjsLib = await import('pdfjs-dist');
-                    pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+                    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
 
                     // Read the file as ArrayBuffer
                     const arrayBuffer = await file.arrayBuffer();

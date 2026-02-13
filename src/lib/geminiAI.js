@@ -488,7 +488,7 @@ IMPORTANT:
 
             // Validate and normalize questions
             const normalizedQuestions = questions.map((q, index) => ({
-                id: crypto.randomUUID(),
+                id: (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : ('xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => { const r = (Math.random() * 16) | 0; return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16); })),
                 type: q.type || 'mc',
                 prompt: q.prompt || `Question ${index + 1}`,
                 promptImage: null,

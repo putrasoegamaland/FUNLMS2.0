@@ -85,7 +85,7 @@ export default function QuestionBankModal({ onImportQuestions, onClose, isAdmin 
         const questionsToImport = allQuestions.filter(q => selectedQuestions.includes(q.id));
         // Format questions for quiz import
         const formattedQuestions = questionsToImport.map(q => ({
-            id: crypto.randomUUID(), // New ID for the imported question
+            id: (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : ('xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => { const r = (Math.random() * 16) | 0; return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16); })), // New ID for the imported question
             type: q.type,
             prompt: q.prompt,
             promptImage: q.prompt_image,
@@ -259,8 +259,8 @@ export default function QuestionBankModal({ onImportQuestions, onClose, isAdmin 
                                 <div
                                     key={question.id}
                                     className={`bg-gray-50 rounded-xl p-4 border transition-colors ${selectedQuestions.includes(question.id)
-                                            ? 'border-blue-500 bg-blue-50'
-                                            : 'border-transparent hover:border-gray-200'
+                                        ? 'border-blue-500 bg-blue-50'
+                                        : 'border-transparent hover:border-gray-200'
                                         }`}
                                 >
                                     <div className="flex items-start gap-3">
@@ -309,8 +309,8 @@ export default function QuestionBankModal({ onImportQuestions, onClose, isAdmin 
                                                         <span
                                                             key={opt.id || i}
                                                             className={`text-xs px-2 py-1 rounded ${opt.isCorrect
-                                                                    ? 'bg-green-100 text-green-700'
-                                                                    : 'bg-gray-100 text-gray-600'
+                                                                ? 'bg-green-100 text-green-700'
+                                                                : 'bg-gray-100 text-gray-600'
                                                                 }`}
                                                         >
                                                             {String.fromCharCode(65 + i)}. {opt.text?.slice(0, 30)}{opt.text?.length > 30 ? '...' : ''}

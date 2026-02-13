@@ -16,6 +16,7 @@ function PracticeQuizContent() {
     const { user } = useAuth();
     const { awardXP, config } = useGame();
     const drawingRef = useRef(null);
+    const hasAutoStarted = useRef(false); // Guard: prevent URL auto-start from re-triggering
 
     const { data: enrollments, loading: enrollmentsLoading } = useEnrollments({ student_id: user?.id });
     const { data: allAssessments, loading: assessmentsLoading } = useAssessments();
@@ -67,14 +68,21 @@ function PracticeQuizContent() {
         }));
     }, [enrollments, allAssessments]);
 
-    // Auto-start quiz from URL param
+    // Auto-start quiz from URL param (only once)
     useEffect(() => {
-        const quizId = searchParams.get('id');
-        const subjectId = searchParams.get('subject');
+        // Guard: don't re-trigger auto-start after user manually selects a quiz
+        if (hasAutoStarted.current) return;
+
+        // Sanitize URL params — "null", "undefined", "" are all treated as empty
+        const rawQuizId = searchParams.get('id');
+        const rawSubjectId = searchParams.get('subject');
+        const quizId = (rawQuizId && rawQuizId !== 'null' && rawQuizId !== 'undefined') ? rawQuizId : null;
+        const subjectId = (rawSubjectId && rawSubjectId !== 'null' && rawSubjectId !== 'undefined') ? rawSubjectId : null;
 
         if (quizId && assessments.length > 0) {
             const quiz = assessments.find(a => a.id === quizId);
             if (quiz) {
+                hasAutoStarted.current = true;
                 if (quiz.access?.accessible) {
                     startQuiz(quiz);
                 } else {
@@ -82,11 +90,16 @@ function PracticeQuizContent() {
                 }
                 return;
             }
+            // Quiz ID not found in filtered list — DON'T fall through to subject picker
+            // This prevents showing a random quiz when the requested one isn't accessible
+            hasAutoStarted.current = true;
+            return;
         }
 
         if (subjectId && assessments.length > 0) {
             const subjectAssessments = assessments.filter(a => a.subject_id === subjectId && a.access?.accessible);
             if (subjectAssessments.length > 0) {
+                hasAutoStarted.current = true;
                 startQuiz(subjectAssessments[0]);
             }
         }
@@ -432,6 +445,7 @@ function PracticeQuizContent() {
                                 setDrawingAnswers({});
                                 setHintsUsed(0);
                                 setViolations([]);
+                                hasAutoStarted.current = false; // Allow new auto-start if navigated again
                             }}
                             className="w-full py-3 bg-primary text-white font-bold rounded-xl"
                         >
@@ -554,8 +568,8 @@ function PracticeQuizContent() {
                                 </div>
                             )}
 
-                            {/* Multiple Choice Options */}
-                            {(question.type === 'mc' || question.type === 'multiple_choice' || (!question.type && selectedQuiz?.type !== 'drawing' && selectedQuiz?.type !== 'essay')) && (
+                            {/* Multiple Choice Options - only show if question AND quiz are MC-compatible */}
+                            {!isEssayOrExam && (question.type === 'mc' || question.type === 'multiple_choice' || !question.type) && question.options?.length > 0 && (
                                 <div className="space-y-3">
                                     {question.options?.map((option) => (
                                         <button
@@ -576,8 +590,8 @@ function PracticeQuizContent() {
                                 </div>
                             )}
 
-                            {/* Essay / Written Answer */}
-                            {(question.type === 'essay' || question.type === 'written_exam' || (!question.type && isEssayOrExam)) && (
+                            {/* Essay / Written Answer - show if quiz is essay/written_exam/drawing OR question type is essay */}
+                            {(question.type === 'essay' || question.type === 'written_exam' || isEssayOrExam) && (
                                 <div className="space-y-4">
                                     <textarea
                                         value={textAnswers[question.id] || ''}

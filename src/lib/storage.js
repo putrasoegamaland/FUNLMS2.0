@@ -4,6 +4,7 @@
  */
 
 import { supabase, isSupabaseConfigured } from './supabase';
+import { generateUUID } from './uuid';
 
 const STORAGE_PREFIX = 'funlms_';
 
@@ -73,7 +74,7 @@ const createSupabaseCRUD = (tableName, localKey) => ({
   create: async (item) => {
     const newItem = {
       ...item,
-      id: item.id || crypto.randomUUID(),
+      id: item.id || generateUUID(),
       created_at: new Date().toISOString()
     };
 
@@ -194,7 +195,7 @@ const createLocalCRUD = (key) => ({
 
   create: (item) => {
     const items = getLocalItem(key) || [];
-    const newItem = { ...item, id: item.id || crypto.randomUUID(), createdAt: new Date().toISOString() };
+    const newItem = { ...item, id: item.id || generateUUID(), createdAt: new Date().toISOString() };
     items.push(newItem);
     setLocalItem(key, items);
     return newItem;

@@ -6,6 +6,14 @@
 import { supabase, isSupabaseConfigured } from './supabase';
 
 export async function seedSupabaseData() {
+    // Skip seeding entirely in local/offline modes — prevents blocking Supabase calls
+    if (typeof window !== 'undefined') {
+        const mode = localStorage.getItem('funlms_network_mode');
+        if (mode === 'local-hub' || mode === 'guest-wifi') {
+            return { success: true, message: 'Skipped: running in local mode' };
+        }
+    }
+
     if (!isSupabaseConfigured() || !supabase) {
         console.error('Supabase not configured');
         return { success: false, error: 'Supabase not configured' };

@@ -12,11 +12,14 @@ const teacherNavItems = [
     { href: '/teacher/dashboard', icon: 'home', label: 'Dashboard' },
     { href: '/teacher/books', icon: 'menu_book', label: 'Books' },
     { href: '/teacher/content', icon: 'quiz', label: 'Quiz' },
+    { href: '/teacher/questions', icon: 'psychology', label: 'HOTS QC' },
     { href: '/teacher/videos', icon: 'play_circle', label: 'Videos' },
     { href: '/teacher/assignments', icon: 'assignment', label: 'Tasks' },
     { href: '/teacher/grading', icon: 'edit_note', label: 'Grading' },
     { href: '/teacher/analytics', icon: 'insights', label: 'Reports' },
+    { href: '/teacher/offline', icon: 'wifi_off', label: 'Offline Hub' },
 ];
+
 
 export default function TeacherLayout({ children }) {
     const router = useRouter();

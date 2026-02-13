@@ -13,14 +13,7 @@ export function AuthProvider({ children }) {
     // Initialize - check for existing session and seed data
     useEffect(() => {
         const init = async () => {
-            // Seed demo data on first load (will skip if already exists)
-            try {
-                await seedSupabaseData();
-            } catch (e) {
-                console.log('Seed error (may be expected):', e);
-            }
-
-            // Check for existing session
+            // Check for existing session FIRST (instant, no network)
             const savedUser = localStorage.getItem('funlms_current_user');
             if (savedUser) {
                 try {
@@ -30,13 +23,73 @@ export function AuthProvider({ children }) {
                 }
             }
             setIsLoading(false);
+
+            // Auto-detect if we're on a Local Hub network
+            // This is a fast local check (no internet needed)
+            try {
+                const res = await fetch('/api/local/health', {
+                    signal: AbortSignal.timeout(2000) // 2 second timeout max
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.available) {
+                        // Local hub is running! Set mode for data routing
+                        const currentMode = localStorage.getItem('funlms_network_mode');
+                        if (currentMode !== 'local-hub') {
+                            // Only set guest-wifi if not the teacher (teacher uses local-hub)
+                            localStorage.setItem('funlms_network_mode', 'guest-wifi');
+                            console.log('🏠 Local Hub detected! Routing data locally.');
+                        }
+                    }
+                }
+            } catch (e) {
+                // Health check failed — no local hub, continue normally
+            }
+
+            // Seed demo data ONLY if online (skip if local-hub or guest-wifi)
+            const mode = localStorage.getItem('funlms_network_mode');
+            if (mode !== 'local-hub' && mode !== 'guest-wifi') {
+                try {
+                    await seedSupabaseData();
+                } catch (e) {
+                    console.log('Seed error (may be expected):', e);
+                }
+            }
         };
 
         init();
     }, []);
 
-    // Async login function - queries Supabase
+    // Login function — tries LOCAL FIRST (instant), then Supabase
     const login = useCallback(async (username, password) => {
+        // STEP 1: Try Local API first (instant on LAN, fails fast if no hub)
+        try {
+            const res = await fetch('/api/local/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password }),
+                signal: AbortSignal.timeout(3000) // 3 second timeout
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                if (data.success && data.user) {
+                    setUser(data.user);
+                    localStorage.setItem('funlms_current_user', JSON.stringify(data.user));
+                    localStorage.setItem('funlms_network_mode', 'guest-wifi');
+                    console.log('✅ Logged in via Local Hub');
+                    return { success: true, user: data.user };
+                }
+            }
+            // If local API returned 401 (wrong password), don't fall through to Supabase
+            if (res.status === 401) {
+                return { success: false, error: 'Invalid username or password' };
+            }
+        } catch (localErr) {
+            console.log('Local login unavailable, trying Supabase...', localErr.message);
+        }
+
+        // STEP 2: Fall back to Supabase/IndexedDB (original behavior)
         try {
             const foundUser = await findUserByCredentials(username, password);
 
@@ -58,6 +111,11 @@ export function AuthProvider({ children }) {
     const logout = useCallback(() => {
         setUser(null);
         localStorage.removeItem('funlms_current_user');
+        // Also clear guest-wifi mode on logout
+        const mode = localStorage.getItem('funlms_network_mode');
+        if (mode === 'guest-wifi') {
+            localStorage.removeItem('funlms_network_mode');
+        }
     }, []);
 
     // Get redirect path based on role

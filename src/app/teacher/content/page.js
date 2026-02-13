@@ -6,6 +6,7 @@ import { useSubjects, useClasses, useAssessments, createRecord, deleteRecord, lo
 import { processImage, formatFileSize } from '@/lib/fileUtils';
 import OCRUploader from '@/components/OCRUploader';
 import QuestionBankModal from '@/components/QuestionBankModal';
+import DocumentUploader from '@/components/DocumentUploader';
 
 export default function TeacherContentPage() {
     const { user } = useAuth();
@@ -32,10 +33,13 @@ export default function TeacherContentPage() {
         start_date: '',
         due_date: '',
         class_ids: [],  // Array for multi-class assignment
+        difficulty: 'medium',  // Easy, Medium, Hard
+        teacher_hots_claim: false,  // Teacher claims this is HOTS
     });
     const [saving, setSaving] = useState(false);
     const [showOCRUploader, setShowOCRUploader] = useState(false);
     const [showQuestionBank, setShowQuestionBank] = useState(false);
+    const [showDocumentUploader, setShowDocumentUploader] = useState(false);
 
     const isLoading = subjectsLoading || classesLoading || assessmentsLoading;
     const classes = allClasses;
@@ -59,10 +63,11 @@ export default function TeacherContentPage() {
 
     const addQuestion = () => {
         const newQuestion = {
-            id: crypto.randomUUID(),
+            id: (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : ('xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => { const r = (Math.random() * 16) | 0; return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16); })),
             type: 'mc',
             prompt: '',
             promptImage: null,
+            difficulty: 'medium',  // Default per-question difficulty
             options: [
                 { id: '1', text: '', image: null, isCorrect: false },
                 { id: '2', text: '', image: null, isCorrect: false },
@@ -75,6 +80,7 @@ export default function TeacherContentPage() {
             questions: [...prev.questions, newQuestion],
         }));
     };
+
 
     const updateQuestion = (qIndex, updates) => {
         setFormData(prev => ({
@@ -129,10 +135,22 @@ export default function TeacherContentPage() {
     const handleSubmit = async () => {
         setSaving(true);
         try {
+            // Determine if quiz needs QC review
+            // For now, quizzes with HOTS claim or hard difficulty should be flagged for review
+            let qcStatus = 'approved';  // Default: auto-approved
+            let qcMessage = 'Quiz created successfully!';
+
+            // If teacher claims HOTS or sets hard difficulty, mark for review
+            if (formData.teacher_hots_claim || formData.difficulty === 'hard') {
+                qcStatus = 'pending_review';
+                qcMessage = 'Quiz created and sent for QC review! An admin will verify the difficulty level.';
+            }
+
             const assessment = {
                 ...formData,
                 type: assessmentType,
                 teacher_id: user?.id,
+                qc_status: qcStatus,  // Add QC status
             };
             const created = await createRecord('assessments', assessment);
 
@@ -142,10 +160,16 @@ export default function TeacherContentPage() {
                 'create_quiz',
                 created?.id,
                 formData.title,
-                { questionCount: formData.questions.length, type: assessmentType }
+                {
+                    questionCount: formData.questions.length,
+                    type: assessmentType,
+                    difficulty: formData.difficulty,
+                    hotsClaimFormData: formData.teacher_hots_claim,
+                    qcStatus
+                }
             );
 
-            alert('Quiz created successfully!');
+            alert(qcMessage);
             // Reset form
             setStep('list');
             refetchAssessments();
@@ -158,6 +182,8 @@ export default function TeacherContentPage() {
                 start_date: '',
                 due_date: '',
                 class_ids: [],
+                difficulty: 'medium',
+                teacher_hots_claim: false,
             });
         } catch (error) {
             alert('Error creating quiz: ' + error.message);
@@ -165,6 +191,7 @@ export default function TeacherContentPage() {
             setSaving(false);
         }
     };
+
 
     return (
         <div className="p-4 space-y-4">
@@ -335,20 +362,27 @@ export default function TeacherContentPage() {
                     </button>
 
                     {/* Import options */}
-                    <div className="flex gap-3">
+                    <div className="grid grid-cols-3 gap-2">
+                        <button
+                            onClick={() => setShowDocumentUploader(true)}
+                            className="py-3 bg-green-100 text-green-700 rounded-xl font-semibold flex items-center justify-center gap-2 hover:bg-green-200 transition-colors"
+                        >
+                            <span className="material-symbols-outlined">upload_file</span>
+                            Word/PDF
+                        </button>
                         <button
                             onClick={() => setShowOCRUploader(true)}
-                            className="flex-1 py-3 bg-purple-100 text-purple-700 rounded-xl font-semibold flex items-center justify-center gap-2 hover:bg-purple-200 transition-colors"
+                            className="py-3 bg-purple-100 text-purple-700 rounded-xl font-semibold flex items-center justify-center gap-2 hover:bg-purple-200 transition-colors"
                         >
                             <span className="material-symbols-outlined">document_scanner</span>
-                            Import from Image
+                            Image OCR
                         </button>
                         <button
                             onClick={() => setShowQuestionBank(true)}
-                            className="flex-1 py-3 bg-blue-100 text-blue-700 rounded-xl font-semibold flex items-center justify-center gap-2 hover:bg-blue-200 transition-colors"
+                            className="py-3 bg-blue-100 text-blue-700 rounded-xl font-semibold flex items-center justify-center gap-2 hover:bg-blue-200 transition-colors"
                         >
                             <span className="material-symbols-outlined">inventory_2</span>
-                            Import from Bank
+                            Bank
                         </button>
                     </div>
                 </div>
@@ -453,8 +487,8 @@ export default function TeacherContentPage() {
                                     <label
                                         key={cls.id}
                                         className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors ${formData.class_ids.includes(cls.id)
-                                                ? 'bg-primary/10 border-primary'
-                                                : 'bg-gray-50 hover:bg-gray-100'
+                                            ? 'bg-primary/10 border-primary'
+                                            : 'bg-gray-50 hover:bg-gray-100'
                                             } border`}
                                     >
                                         <input
@@ -480,6 +514,65 @@ export default function TeacherContentPage() {
                                 {formData.class_ids.length} class{formData.class_ids.length > 1 ? 'es' : ''} selected
                             </p>
                         )}
+                    </div>
+
+                    {/* Difficulty & HOTS Section */}
+                    <div className="bg-card-light rounded-xl p-4 border border-gray-100">
+                        <h3 className="font-bold text-text-main mb-3">📊 Tingkat Kesulitan & Kategori</h3>
+
+                        <div className="space-y-4">
+                            {/* Difficulty Level */}
+                            <div>
+                                <label className="block text-sm text-text-muted mb-2">Tingkat Kesulitan Quiz</label>
+                                <div className="flex gap-2">
+                                    {[
+                                        { value: 'easy', label: '🟢 Mudah', color: 'green' },
+                                        { value: 'medium', label: '🟡 Sedang', color: 'yellow' },
+                                        { value: 'hard', label: '🔴 Sulit', color: 'red' }
+                                    ].map(d => (
+                                        <button
+                                            key={d.value}
+                                            type="button"
+                                            onClick={() => setFormData({ ...formData, difficulty: d.value })}
+                                            className={`flex-1 py-3 rounded-xl border-2 font-medium transition-all ${formData.difficulty === d.value
+                                                ? d.color === 'green' ? 'bg-green-100 border-green-500 text-green-700'
+                                                    : d.color === 'yellow' ? 'bg-yellow-100 border-yellow-500 text-yellow-700'
+                                                        : 'bg-red-100 border-red-500 text-red-700'
+                                                : 'bg-white border-gray-200 text-gray-600 hover:border-gray-400'
+                                                }`}
+                                        >
+                                            {d.label}
+                                        </button>
+                                    ))}
+                                </div>
+                                <p className="text-xs text-text-muted mt-2">
+                                    AI akan memvalidasi apakah tingkat kesulitan sesuai dengan konten pertanyaan
+                                </p>
+                            </div>
+
+                            {/* HOTS Claim */}
+                            <label className="flex items-center gap-3 p-4 rounded-xl border-2 border-gray-200 cursor-pointer hover:bg-purple-50 hover:border-purple-300 transition-all">
+                                <input
+                                    type="checkbox"
+                                    checked={formData.teacher_hots_claim}
+                                    onChange={(e) => setFormData({ ...formData, teacher_hots_claim: e.target.checked })}
+                                    className="w-5 h-5 text-purple-600 rounded focus:ring-purple-500"
+                                />
+                                <div className="flex-1">
+                                    <p className="font-bold text-text-main flex items-center gap-2">
+                                        🧠 Quiz HOTS (Higher-Order Thinking Skills)
+                                    </p>
+                                    <p className="text-xs text-text-muted mt-1">
+                                        Centang jika pertanyaan membutuhkan analisis, evaluasi, atau kreasi (Bloom Level 4-6)
+                                    </p>
+                                </div>
+                                {formData.teacher_hots_claim && (
+                                    <span className="px-2 py-1 bg-purple-100 text-purple-600 text-xs font-bold rounded-full">
+                                        HOTS ✓
+                                    </span>
+                                )}
+                            </label>
+                        </div>
                     </div>
 
                     <div className="flex gap-3">
@@ -529,6 +622,14 @@ export default function TeacherContentPage() {
                     onClose={() => setShowQuestionBank(false)}
                     isAdmin={false}
                     currentTeacherId={user?.id}
+                />
+            )}
+
+            {/* Document Uploader Modal */}
+            {showDocumentUploader && (
+                <DocumentUploader
+                    onQuestionsExtracted={handleOCRQuestions}
+                    onClose={() => setShowDocumentUploader(false)}
                 />
             )}
         </div>
@@ -596,6 +697,27 @@ function QuestionCard({ question, index, onUpdate, onDelete, type, allowImageAns
             <div className="flex items-center justify-between">
                 <h4 className="font-bold text-text-main">Question {index + 1}</h4>
                 <div className="flex gap-2 items-center">
+                    {/* Per-question Difficulty Selector */}
+                    <div className="flex gap-1">
+                        {[
+                            { value: 'easy', label: '🟢', title: 'Mudah' },
+                            { value: 'medium', label: '🟡', title: 'Sedang' },
+                            { value: 'hard', label: '🔴', title: 'Sulit' }
+                        ].map(d => (
+                            <button
+                                key={d.value}
+                                type="button"
+                                title={d.title}
+                                onClick={() => onUpdate({ difficulty: d.value })}
+                                className={`w-7 h-7 rounded-lg text-sm flex items-center justify-center transition-all ${(question.difficulty || 'medium') === d.value
+                                    ? 'ring-2 ring-offset-1 ring-primary scale-110'
+                                    : 'opacity-50 hover:opacity-100'
+                                    }`}
+                            >
+                                {d.label}
+                            </button>
+                        ))}
+                    </div>
                     <select
                         value={currentType}
                         onChange={(e) => onUpdate({ type: e.target.value })}

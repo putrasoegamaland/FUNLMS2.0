@@ -1,5 +1,6 @@
 import { Plus_Jakarta_Sans } from 'next/font/google';
 import './globals.css';
+import { NetworkProvider } from '@/contexts/NetworkContext';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { GameProvider } from '@/contexts/GameContext';
 import { LanguageProvider } from '@/contexts/LanguageContext';
@@ -25,13 +26,15 @@ export default function RootLayout({ children }) {
         />
       </head>
       <body className="font-display antialiased">
-        <LanguageProvider>
-          <AuthProvider>
-            <GameProvider>
-              {children}
-            </GameProvider>
-          </AuthProvider>
-        </LanguageProvider>
+        <NetworkProvider>
+          <LanguageProvider>
+            <AuthProvider>
+              <GameProvider>
+                {children}
+              </GameProvider>
+            </AuthProvider>
+          </LanguageProvider>
+        </NetworkProvider>
       </body>
     </html>
   );

@@ -3,6 +3,14 @@ import { NextResponse } from 'next/server';
 import { saveLocalDB } from '@/lib/localServer';
 
 export async function POST(request) {
+    // On Vercel/cloud, filesystem is read-only — skip gracefully
+    if (process.env.VERCEL) {
+        return NextResponse.json({
+            success: false,
+            message: 'Local sync is only available when running locally (not on Vercel).'
+        }, { status: 200 });
+    }
+
     try {
         const body = await request.json();
 
